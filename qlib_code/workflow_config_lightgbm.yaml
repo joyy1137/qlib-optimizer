@@ -1,0 +1,84 @@
+qlib_init:
+    provider_uri: "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"
+    region: cn
+market: &market all
+benchmark: &benchmark 000300.sh
+data_handler_config: &data_handler_config
+    start_time: 2015-01-01
+    end_time: 2025-10-22
+    fit_start_time: 2015-01-01
+    fit_end_time: 2019-08-31
+    instruments: *market
+    
+port_analysis_config: &port_analysis_config
+    strategy:
+        class: TopkDropoutStrategy
+        module_path: qlib.contrib.strategy
+        kwargs:
+            signal: <PRED>
+            topk: 50
+            n_drop: 5
+            risk_degree: 1.0
+    backtest:
+        start_time: 2020-09-01
+        end_time: 2025-10-22
+        account: 100000000
+        benchmark: *benchmark
+        exchange_kwargs:
+            limit_threshold: 0.095
+            deal_price: close
+            open_cost: 0.0005
+            close_cost: 0.0015
+            min_cost: 5
+task:
+    experiment_name: "test_lgbm"
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.9058152731136294
+            learning_rate: 0.045756879897871805
+            subsample: 0.18157818132780507
+            lambda_l1: 0.00022346972262632592
+            lambda_l2: 1001.8237427610699
+            num_leaves: 685
+            feature_fraction: 0.4183517359113321
+            bagging_fraction: 0.6173858959530764
+            bagging_freq: 5
+            min_data_in_leaf: 27
+            min_child_samples: 47
+            max_depth: 8
+            num_threads: 20
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                class: Alpha158
+                module_path: qlib.contrib.data.handler
+                kwargs: *data_handler_config
+            segments:
+                train: [2015-01-01, 2019-08-31]
+                valid: [2019-09-01, 2020-08-31]
+                test: [2020-09-01, 2025-10-22]
+    record: 
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            model: <MODEL>
+            dataset: <DATASET>
+        - class: ShapRecord
+          module_path: shap_record
+          kwargs:
+            model: <MODEL>
+            dataset: <DATASET>
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            ana_long_short: False
+            ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs: 
+            config: *port_analysis_config
