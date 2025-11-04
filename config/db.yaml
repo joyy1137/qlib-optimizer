@@ -1,0 +1,9 @@
+type: "mysql"
+database: "qlib"
+table_name: "qlib"
+chunk_size: 20000
+workers: 4
+user: "yfr"
+password: "Abcd1234#"
+host: "rm-cn-fhh4gzo9900083vo.rwlb.rds.aliyuncs.com"
+port: 3306

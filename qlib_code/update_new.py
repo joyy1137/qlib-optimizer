@@ -5,6 +5,7 @@ This script expects the following environment variables (set by `run_daily_updat
     TARGET_PREDICT_DATE  -- (optional) YYYY-MM-DD date string for prediction. Defaults to today.
 """
 
+from importer import MySQLImporter
 import os
 from qlib.utils import init_instance_by_config
 from qlib.workflow import R
@@ -15,20 +16,30 @@ from multiprocessing import freeze_support
 import pickle
 import sys
 import os
-from datetime import datetime, timedelta, date
+import yaml
+from datetime import datetime, time, date
 original_sys_path = sys.path.copy()
 
 
 
 def main():
    
-    model_path = r"E:\qlib_code\mlruns\505608931795866282\7d35e7a5b04149f690fd8e0cf031f84d\artifacts\trained_model"
+    cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
+
+    with open(cfg_path, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f) or {}
+
+    provider_uri = cfg['provider_uri']
+    qlib.init(provider_uri=provider_uri)
+
+    model_path = cfg['model_path']
+
     model = pickle.load(open(model_path, "rb"))
     print("模型加载成功")
     custom_path  = os.getenv('GLOBAL_TOOLSFUNC_test')
-    sys.path.append(custom_path )
-    import global_tools as gt
-    pre_date = gt.last_workday_calculate(TARGET_PREDICT_DATE)
+    # sys.path.append(custom_path )
+    # import global_tools as gt
+    # pre_date = gt.last_workday_calculate(TARGET_PREDICT_DATE)
     sys.path = original_sys_path
 
 
@@ -63,24 +74,55 @@ def main():
 
     pred_df = (
         pd.DataFrame({
+            "valuation_date": test_df.index.get_level_values("datetime"),
             "code": test_df.index.get_level_values("instrument"),
-            "score": pred_values,
+            "final_score": pred_values,
+            "score_name": "vp08",
+            "update_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         })
-        .sort_values("score", ascending=False)
+        .sort_values("final_score", ascending=False)
     )
+    # df = pd.DataFrame(pred_df)
 
     filename = f"prediction_{TARGET_PREDICT_DATE.replace('-', '')}.csv"
-    OUTPUT_DIR = r"E:\\qlib_output"
+    OUTPUT_DIR = cfg['prediction_output_dir']
     output_path = os.path.join(OUTPUT_DIR, filename)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     pred_df.to_csv(output_path, index=False)
     print(f"预测结果已保存到 {output_path}")
 
-if __name__ == '__main__':
-    # TARGET_PREDICT_DATE = date.today().strftime('%Y-%m-%d')
-    TARGET_PREDICT_DATE = '2025-10-31' 
+    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'db.yaml'))
+  
 
-    provider_uri = r"E:\qlib_data\tushare_qlib_data\qlib_bin"
-    qlib.init(provider_uri=provider_uri)
-    
+    importer = MySQLImporter(db_path)
+    schema = [
+        {'field': 'valuation_date', 'type': 'DATE'},
+        {'field': 'code', 'type': 'VARCHAR(50)'},
+        {'field': 'final_score', 'type': 'DECIMAL(15,6)'},
+        {'field': 'score_name', 'type': 'VARCHAR(50)'},
+        {'field': 'update_time', 'type': 'DATETIME'}
+    ]
+    importer.df_to_mysql(pred_df, 'qlib_scores', schema)
+ 
+    print(f"预测结果已保存到数据库")
+
+
+
+
+if __name__ == '__main__':
+    # TARGET_PREDICT_DATE = ("2025-07-31")
+    custom_path  = os.getenv('GLOBAL_TOOLSFUNC_test')
+    sys.path.append(custom_path )
+    import global_tools as gt
+    date = datetime.now().time()
+    date_str = datetime.now().strftime('%Y-%m-%d')
+  
+    if gt.is_workday(date_str) == False:
+        TARGET_PREDICT_DATE = gt.last_workday_calculate(date_str)
+    elif date <= time(19, 0):
+        TARGET_PREDICT_DATE = gt.last_workday_calculate(date_str)
+    else:
+        TARGET_PREDICT_DATE = date_str
+   
     freeze_support()  
     main()

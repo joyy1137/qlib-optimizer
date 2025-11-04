@@ -1,0 +1,10 @@
+csv_output_dir: "E:\\qlib_data\\tushare_qlib_data\\csv_data"
+model_path: "E:\\output\\mlruns\\505608931795866282\\7d35e7a5b04149f690fd8e0cf031f84d\\artifacts\\trained_model"
+prediction_output_dir: "E:\\qlib_data\\output"
+provider_uri: "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"
+
+
+log_dir: "E:\\qlib_data\\logs"
+data_dir: "E:\\qlib_data"
+
+

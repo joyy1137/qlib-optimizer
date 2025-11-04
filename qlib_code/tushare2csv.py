@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timedelta, date
 from token_manager import get_valid_token
 import tushare as ts
+import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
 
@@ -292,8 +293,13 @@ class QlibDataConverter:
 
 def main():
     TUSHARE_TOKEN = get_valid_token()
+    cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
 
-    output_dir = r"E:\qlib_data\tushare_qlib_data\csv_data"
+    with open(cfg_path, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f) or {}
+
+    output_dir = cfg['csv_output_dir']
+
     converter = QlibDataConverter(TUSHARE_TOKEN, output_dir)
     
     market = 'ALL'
