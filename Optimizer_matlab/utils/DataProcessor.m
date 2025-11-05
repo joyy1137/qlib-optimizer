@@ -30,18 +30,20 @@ function [code_list, score_vec, init_weight, df_score, df_index, exposure_mat, s
     df_index = dbc.index_component_withdraw(data_date, index_type);
     
     % 获取 ST 列表（使用稳定数据）
+    % --- 统一将代码转为 string，避免 cell vs double 类型比较导致警告 ---
+    df_index_codes = string(df_index.code);
     if ~isempty(df_st) && ismember('code', df_st.Properties.VariableNames)
-        st_codes = df_st.code;
+        st_codes = string(df_st.code);
     else
-        st_codes = [];
+        st_codes = string.empty;
     end
-    
-    % 交集：index 成分股且非 ST
-    valid_codes = setdiff(df_index.code, st_codes);
-    code_list = df_index.code(ismember(df_index.code, valid_codes));
 
-    % 按index成分股顺序筛选df_score
-    [is_in, loc] = ismember(code_list, df_score.code);
+    % 交集：index 成分股且非 ST（使用 string 进行集合运算）
+    valid_codes = setdiff(df_index_codes, st_codes);
+    code_list = df_index_codes(ismember(df_index_codes, valid_codes));
+
+    % 按index成分股顺序筛选df_score（统一为 string 比较）
+    [is_in, loc] = ismember(string(code_list), string(df_score.code));
     score_vec = nan(length(code_list), 1);
     if any(is_in)
         score_vec(is_in) = df_score.final_score(loc(is_in));
@@ -83,7 +85,8 @@ function [code_list, score_vec, init_weight, df_score, df_index, exposure_mat, s
     % 导出 index_initial_weight.csv（顺序与index成分股一致，初始权重=0或index权重）
     init_weight = zeros(length(code_list), 1);
     if ismember('weight', df_index.Properties.VariableNames)
-        [~, idx_in_index] = ismember(code_list, df_index.code);
+        % 使用 string 进行比较以避免类型不一致的警告
+        [~, idx_in_index] = ismember(string(code_list), string(df_index.code));
         init_weight(:) = df_index.weight(idx_in_index);
     end
 

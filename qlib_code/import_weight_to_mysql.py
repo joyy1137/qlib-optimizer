@@ -101,6 +101,7 @@ def main():
 
     # call df_to_mysql with schema and pk_fields
     importer.df_to_mysql(combined, table, SCHEMA, pk_fields, database='database2')
+   
     importer.close()
 
 

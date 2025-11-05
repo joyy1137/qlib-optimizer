@@ -55,14 +55,14 @@ if __name__ == "__main__":
                 "module_path": "qlib.contrib.data.handler",
                 "kwargs": {
                     "start_time": "2015-01-01",
-                    "end_time": "2025-10-22",
+                    "end_time": "2025-11-01",
                     "instruments": "all",
                 },
             },
             "segments": {
-                "train": ("2015-01-01", "2019-08-31"),
-                "valid": ("2019-09-01", "2020-08-31"),
-                "test": ("2020-09-01", "2025-10-22"),
+                "train": ("2015-01-01", "2025-10-28"),
+                "valid": ("2025-10-28", "2025-10-30"),
+                "test": ("2025-10-30", "2025-11-01"),
             },
         },
     }
@@ -79,3 +79,7 @@ if __name__ == "__main__":
         log.info(study.best_params)
     else:
         log.error("No successful trial found.")
+
+
+# optuna create-study --study LGBM_158 --storage sqlite:///db.sqlite3
+# optuna-dashboard --port 5000 --host 0.0.0.0 sqlite:///db.sqlite3

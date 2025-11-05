@@ -81,13 +81,15 @@ function data_preparation()
             end
             
             % 数据准备阶段的输出路径（用于后续优化和回测的输入）
-            addpath(genpath('E:\YAMLMatlab_0.4.3'));
+            % addpath(genpath('E:\YAMLMatlab_0.4.3'));
+        
             currentFile = mfilename('fullpath');
             currentDir = fileparts(currentFile);
 
             path_config = fullfile(currentDir, '..','config', 'paths.yaml');
 
             path = ReadYaml(path_config);
+          
 
             outdir = fullfile(path.processing_data_dir, uname, pname, wday_str);
             

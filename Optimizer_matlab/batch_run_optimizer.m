@@ -29,7 +29,7 @@ function batch_run_optimizer()
     start_dates = portfolio_info.start_date;
     end_dates = portfolio_info.end_date;
     
-    addpath(genpath('E:\YAMLMatlab_0.4.3'));
+    % addpath(genpath('E:\YAMLMatlab_0.4.3'));
     currentFile = mfilename('fullpath');
     currentDir = fileparts(currentFile);
 

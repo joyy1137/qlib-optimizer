@@ -64,11 +64,11 @@ function df_result = merge_portfolio_dataframe(output_path)
     
     
     
-    addpath(genpath('E:\YAMLMatlab_0.4.3'));
+    % addpath(genpath('E:\YAMLMatlab_0.4.3'));
     currentFile = mfilename('fullpath');
     currentDir = fileparts(currentFile);
 
-    path_config = fullfile(currentDir, '..','config', 'paths.yaml');
+    path_config = fullfile(currentDir, '..', '..','config', 'paths.yaml');
 
     path = ReadYaml(path_config);
     base_path = path.processing_data_dir;
