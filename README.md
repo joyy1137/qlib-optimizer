@@ -26,8 +26,9 @@
 
 ## 快速设置（Python）
 
-1. 克隆仓库并进入目录（已由你在本地完成）。
+1. 克隆仓库并进入目录。
 2. 建议创建并激活虚拟环境（示例使用 Conda）：
+3. 需要确保已经下载yamlmatlab
 
 ```powershell
 # 创建并激活 conda 环境（示例）
@@ -58,7 +59,7 @@ pip install -r qlib_code\requirements.txt
   python .\qlib_code\run_daily_update.py
   ```
 
-  运行后会触发数据更新（如果脚本实现了该逻辑），并执行模型预测流程，最后在 `config/paths.yaml` 指定的 `prediction_output_dir` 中产出 `prediction_YYYYMMDD.csv`，同时将结果写入数据库（通过 `MySQLImporter`）。
+  运行后会触发数据更新，并执行模型预测流程，最后在 `config/paths.yaml` 指定的 `prediction_output_dir` 中产出 `prediction_YYYYMMDD.csv`，同时将结果写入数据库（通过 `MySQLImporter`）。
 
 - 仅运行预测（可选）
 
@@ -69,13 +70,6 @@ pip install -r qlib_code\requirements.txt
   $env:GLOBAL_TOOLSFUNC_test = 'C:\path\to\your\tools'
   python .\qlib_code\update_new.py
   ```
-
-  `update_new.py` 会根据当前日期与 `global_tools.is_workday()` 的结果来决定 `TARGET_PREDICT_DATE`：
-  - 如果当天不是交易日，脚本会选取上一个交易日作为预测日期；
-  - 如果当天是交易日但时间早于 19:00，则也会回退到上一个交易日；
-  - 否则以当天为预测日期。
-
-  注意：脚本当前不会从环境变量读取 `TARGET_PREDICT_DATE`，若需要强制某个日期进行预测，请在脚本中临时修改或创建一个小的 wrapper 脚本将所需日期传入并调用 `update_new.main()`。
 
   常见问题：
   - 如果脚本找不到 `global_tools`，请确认 `GLOBAL_TOOLSFUNC_test` 指向包含 `global_tools.py` 的目录。
