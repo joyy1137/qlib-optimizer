@@ -46,7 +46,23 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
             end
         end
     else
-        override_dt = datetime('today');
+
+        today_dt = datetime('today');
+
+       
+        [is_trading, actual_date] = ValidateWorkingDay(today_dt);
+      
+        now_dt = datetime('now');
+        disp(now_dt);
+        if is_trading && hour(now_dt) >= 19
+            override_dt = today_dt;
+        elseif ~is_trading
+            override_dt = datetime(actual_date, 'InputFormat', 'yyyy-MM-dd');
+        else
+            override_dt = LastWorkdayCalculator(today_dt);
+
+        end
+        
     end
 
     % 只有在确实存在这两列时才尝试覆盖

@@ -8,6 +8,7 @@ function data_preparation()
     addpath(fullfile(script_dir, 'utils'));
     addpath(fullfile(script_dir, 'tools')); 
     addpath(fullfile(script_dir, 'config')); 
+ 
 
     
     % 配置文件路径
@@ -24,6 +25,8 @@ function data_preparation()
     user_names = portfolio_info.user_name;
     start_dates = portfolio_info.start_date;
     end_dates = portfolio_info.end_date;
+    
+
 
     for i = 1:length(portfolio_names)
         pname = portfolio_names{i};
@@ -78,7 +81,15 @@ function data_preparation()
             end
             
             % 数据准备阶段的输出路径（用于后续优化和回测的输入）
-            outdir = fullfile(script_dir, '..', 'output', 'processing_data', uname, pname, wday_str);
+            addpath(genpath('E:\YAMLMatlab_0.4.3'));
+            currentFile = mfilename('fullpath');
+            currentDir = fileparts(currentFile);
+
+            path_config = fullfile(currentDir, '..','config', 'paths.yaml');
+
+            path = ReadYaml(path_config);
+
+            outdir = fullfile(path.processing_data_dir, uname, pname, wday_str);
             
             try
                 % 获取投资组合信息

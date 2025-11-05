@@ -36,12 +36,7 @@ def main():
 
     model = pickle.load(open(model_path, "rb"))
     print("模型加载成功")
-    custom_path  = os.getenv('GLOBAL_TOOLSFUNC_test')
-    # sys.path.append(custom_path )
-    # import global_tools as gt
-    # pre_date = gt.last_workday_calculate(TARGET_PREDICT_DATE)
-    sys.path = original_sys_path
-
+    
 
     instruments = D.instruments(market="all")
     handler_config = {
@@ -82,7 +77,7 @@ def main():
         })
         .sort_values("final_score", ascending=False)
     )
-    # df = pd.DataFrame(pred_df)
+
 
     filename = f"prediction_{TARGET_PREDICT_DATE.replace('-', '')}.csv"
     OUTPUT_DIR = cfg['prediction_output_dir']
@@ -91,10 +86,12 @@ def main():
     pred_df.to_csv(output_path, index=False)
     print(f"预测结果已保存到 {output_path}")
 
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'db.yaml'))
-  
+    db_yaml_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'db.yaml'))
 
-    importer = MySQLImporter(db_path)
+    with open(db_yaml_path, 'r', encoding='utf-8') as f:
+        db_cfg = yaml.safe_load(f) or {}
+
+    importer = MySQLImporter(db_yaml_path)
     schema = [
         {'field': 'valuation_date', 'type': 'DATE'},
         {'field': 'code', 'type': 'VARCHAR(50)'},
@@ -102,11 +99,11 @@ def main():
         {'field': 'score_name', 'type': 'VARCHAR(50)'},
         {'field': 'update_time', 'type': 'DATETIME'}
     ]
-    importer.df_to_mysql(pred_df, 'qlib_scores', schema)
+
+ 
+    importer.df_to_mysql(pred_df, db_cfg['table_name'], schema)
  
     print(f"预测结果已保存到数据库")
-
-
 
 
 if __name__ == '__main__':
@@ -123,6 +120,7 @@ if __name__ == '__main__':
         TARGET_PREDICT_DATE = gt.last_workday_calculate(date_str)
     else:
         TARGET_PREDICT_DATE = date_str
+    sys.path = original_sys_path  
    
     freeze_support()  
     main()

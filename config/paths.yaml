@@ -1,10 +1,22 @@
 csv_output_dir: "E:\\qlib_data\\tushare_qlib_data\\csv_data"
+qlib_bin_dir: "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"
+#克隆之后qlib库的存放路径
+qlib_workdir: "E:\\qlib" 
+
+# 训练好的模型存放路径
 model_path: "E:\\output\\mlruns\\505608931795866282\\7d35e7a5b04149f690fd8e0cf031f84d\\artifacts\\trained_model"
-prediction_output_dir: "E:\\qlib_data\\output"
+
+# 预测出的score文件存放路径
+prediction_output_dir: "E:\\qlib_output"
+
 provider_uri: "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"
+# 临时存放合并后的优化后的权重文件
+temp_dir: "E:\\qlib-optimizer\\temp"
+
+# 输出的优化结果存放路径
+processing_data_dir: "E:\\processing_data"
 
 
-log_dir: "E:\\qlib_data\\logs"
-data_dir: "E:\\qlib_data"
+
 
 

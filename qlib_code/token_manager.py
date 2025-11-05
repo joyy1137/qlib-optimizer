@@ -4,7 +4,7 @@
 import requests
 import json
 from pathlib import Path
-import tushare as ts
+import tinyshare as ts
 
 RED = '\033[91m'
 GREEN = "\033[32m"

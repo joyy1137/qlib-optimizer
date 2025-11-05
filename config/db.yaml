@@ -1,6 +1,8 @@
 type: "mysql"
 database: "qlib"
-table_name: "qlib"
+database2: "portfolio_t1"
+table_name: "data_score"
+table_name2: "portfolio_weights"
 chunk_size: 20000
 workers: 4
 user: "yfr"

@@ -15,7 +15,8 @@
 - `run_daily_update.py` => 运行日常流水线（拉数据 -> 转格式 -> 预测）。
 - `update_new.py` => 加载模型并对目标日做预测，输出 `prediction_YYYYMMDD.csv`。
 - `hyperparameter_lgbm.py` => 用 Optuna 对 LGBM 模型做超参搜索的脚本。
-- `mlruns/` => MLflow 的实验输出（训练产物、metrics、artifacts）。
+- `import_weight_to_mysql.py` - 将导出的组合权重或回测结果导入 MySQL 的工具脚本，用于把优化结果写入数据库以便下游使用。
+
 
 ## 快速开始（Windows / PowerShell）
 

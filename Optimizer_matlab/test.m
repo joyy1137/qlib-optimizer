@@ -1,1 +1,0 @@
-daily_weight_updater('2024-01-15')

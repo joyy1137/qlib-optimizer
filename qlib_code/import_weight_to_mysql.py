@@ -5,7 +5,11 @@ from importer import MySQLImporter
 import yaml
 
 DEFAULT_DB_CONFIG = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'db.yaml'))
-A_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'a'))
+path_config = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
+with open(path_config, 'r', encoding='utf-8') as f:
+        path = yaml.safe_load(f) or {}
+A_FOLDER = path['temp_dir']
+
 
 SCHEMA = [
     {'field': 'valuation_date', 'type': 'VARCHAR(50)'},
@@ -85,7 +89,6 @@ def main():
 
     all_rows = []
     for csv in csvs:
-        print(f"读取文件: {csv}")
         df = read_and_normalize(csv)
         all_rows.append(df)
 

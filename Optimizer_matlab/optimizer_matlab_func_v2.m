@@ -2,7 +2,6 @@ function [final_weight, barra_saving_info, industry_saving_info] = optimizer_mat
 % 函数功能：读取指定路径下的数据文件，进行投资组合优化
 % path：输入路径，包含?有必要的CSV数据文件
 % worker_count：并行工作进程数量，默认从配置文件读?
-% path = 'd:/Optimizer_python_data_test/processing_data/fm01_hs300_HB/2025-02-05'
 % 使用持久变量保持并行池在函数调用之间存在
 persistent persistentPool;
 

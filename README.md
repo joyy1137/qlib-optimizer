@@ -7,6 +7,7 @@
 - `qlib_code/` - Python 代码与 Qlib 相关的脚本：
   - `update_new.py` - 加载已训练模型并对指定的交易日进行预测，生成 CSV 并写入 MySQL（或配置的数据库）。
   - `run_daily_update.py`, `importer.py`, `tushare2csv.py` 等 - 辅助脚本，用于数据更新、导入与处理。
+  - `import_weight_to_mysql.py` - 将导出的权重/组合信息导入 MySQL 的工具脚本。
   - `requirements.txt` - Python 依赖（用于创建虚拟环境）。
   - 其他脚本用于导出权重、绘图、模型解释（shap）等。
 - `Optimizer_matlab/` - Matlab 优化与回测工具：
@@ -14,7 +15,7 @@
 - `config/` - YAML 配置文件（根目录下）：
   - `paths.yaml` - 路径与资源配置（provider uri、model 存放路径、预测输出目录等）。
   - `db.yaml` - 数据库连接配置（用于 `MySQLImporter`）。
-- 其它文件：Jupyter 笔记本（`aa.ipynb`）等。
+
 
 ## 项目功能（简述）
 

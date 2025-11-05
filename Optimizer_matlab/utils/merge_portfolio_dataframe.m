@@ -31,7 +31,7 @@ function df_result = merge_portfolio_dataframe(output_path)
     % 读取配置文件获取投资组合基础信息
     fprintf('正在读取配置文件: %s\n', config_path);
     try
-        [portfolio_info, ~, ~] = ConfigReader(config_path);
+        [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
         fprintf('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
     catch ME
         error('读取配置文件失败: %s', ME.message);
@@ -62,11 +62,17 @@ function df_result = merge_portfolio_dataframe(output_path)
         end
     end
     
-    % 从config_path推断基础路径（数据在output/processing_data）
-    [config_dir, ~, ~] = fileparts(config_path);
-    script_dir = fileparts(config_dir);
-    base_path = fullfile(script_dir, '..', 'output', 'processing_data');
     
+    
+    addpath(genpath('E:\YAMLMatlab_0.4.3'));
+    currentFile = mfilename('fullpath');
+    currentDir = fileparts(currentFile);
+
+    path_config = fullfile(currentDir, '..','config', 'paths.yaml');
+
+    path = ReadYaml(path_config);
+    base_path = path.processing_data_dir;
+
     % 初始化结果table（用于收集所有数据）
     df_all = table();
     
@@ -276,6 +282,7 @@ function df_result = merge_portfolio_dataframe(output_path)
                     
                     try
                         writetable(df_export, outFile);
+                        fprintf('导出: %s\n', outFile);
                     catch ME
                         warning('导出失败 %s/%s: %s', current_portfolio, current_date, ME.message);
                     end

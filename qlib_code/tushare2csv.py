@@ -1,11 +1,11 @@
-import tushare as ts
+import tinyshare as ts
 import pandas as pd
 import os
 import time
 import logging
 from datetime import datetime, timedelta, date
 from token_manager import get_valid_token
-import tushare as ts
+import tinyshare as ts
 import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class QlibDataConverter:
    
     def __init__(self, token, output_dir):
            
-        self.pro = ts.pro_api(token)
+        self.pro = ts.pro_api("sBDH68895ILAFlFt8BZJAhxIBf36Gmi2rwv2TBe95dLpqtkys1I03xEI75dd3281")
         self.csv_output_dir = output_dir
 
         os.makedirs(self.csv_output_dir, exist_ok=True)

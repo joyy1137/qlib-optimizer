@@ -4,6 +4,9 @@ classdef DatabaseConnector
         dbname
         username
         password
+        % 可配置项：默认score来源和本地预测文件夹
+        score_source
+        local_score_dir
     end
 
     methods
@@ -13,6 +16,9 @@ classdef DatabaseConnector
             obj.dbname = db_config.dbname;
             obj.username = db_config.username;
             obj.password = db_config.password;
+            obj.score_source = db_config.score_source;
+            obj.local_score_dir = db_config.local_score_dir;
+            
         end
         
         
@@ -459,42 +465,123 @@ classdef DatabaseConnector
             close(conn);
         end
 
-        function [df] = score_withdraw(obj, date, score_name)
-            conn = obj.createConnection();
-            
+        function [df] = score_withdraw(obj, date, score_name, source)
+           
+
+            if nargin < 4 || isempty(source)
+                source = obj.score_source;
+            end
+
+            % 验证 source 取值
+            if ~any(strcmpi(source, {'db','csv'}))
+                error('score_withdraw: invalid source. source must be ''db'' or ''csv''');
+            end
+
+            % 规范化日期字符串
             if isdatetime(date)
                 date_str = char(string(date, 'yyyy-MM-dd'));  
             elseif ischar(date) || isstring(date)
-                % 输入是 string/char，自动判断格式
                 if ~isempty(regexp(date, '^\d{4}-\d{2}-\d{2}$', 'once'))
-                    % yyyy-MM-dd
                     dt = datetime(date, 'InputFormat', 'yyyy-MM-dd');
                     date_str = char(string(dt, 'yyyy-MM-dd'));
                 elseif ~isempty(regexp(date, '^\d{2}-[A-Za-z]{3}-\d{4}$', 'once'))
-                    % dd-MMM-yyyy
                     dt = datetime(date, 'InputFormat', 'dd-MMM-yyyy', 'Locale','en_US');
                     date_str = char(string(dt, 'yyyy-MM-dd'));
                 else
                     date_str = char(date);
                 end
+            else
+                date_str = char(string(date));
             end
-            
-            try
-               
-                query15 = ['SELECT * FROM data_prepared_new.data_score ', ...
-                               'WHERE valuation_date = ''', date_str, '''', ...
-                               'AND score_name = ''', score_name, ''''];
-                df = fetch(conn, query15);
-                if ismember('update_time', df.Properties.VariableNames)
-                    df = removevars(df, 'update_time');
+
+            df = table();
+
+            % 如果 source 为 'db'，从数据库读取
+            if strcmpi(source, 'db')
+                conn = obj.createConnection();
+                try
+                    query15 = ['SELECT * FROM data_prepared_new.data_score ', ...
+                                   'WHERE valuation_date = ''', date_str, '''', ...
+                                   'AND score_name = ''', score_name, ''''];
+                    df_db = fetch(conn, query15);
+                    if ismember('update_time', df_db.Properties.VariableNames)
+                        df_db = removevars(df_db, 'update_time');
+                    end
+                catch ME
+                    close(conn);
+                    rethrow(ME);
                 end
-                
-             
-            catch ME
                 close(conn);
-                rethrow(ME);
+                if ~isempty(df_db)
+                    df = df_db;
+                    return;
+                end
             end
-            close(conn);
+
+            % 如果到这里且 source 指定为 'csv'，则尝试从本地 prediction CSV 读取
+            if strcmpi(source, 'csv')
+                try
+                    % 决定搜索目录
+                    if ~isempty(obj.local_score_dir)
+                        search_root = obj.local_score_dir;
+                    else
+                        search_root = pwd;
+                    end
+
+                    try
+                        date_ymd = datestr(date, 'yyyymmdd');
+                    catch
+                        date_ymd = regexprep(date_str, '-', '');
+                    end
+                    pattern1 = fullfile(search_root, '**', ['prediction_*' date_ymd '*.csv']);
+                    files = dir(pattern1);
+                    if isempty(files)
+                        pattern2 = fullfile(search_root, '**', ['prediction_*' date_str '*.csv']);
+                        files = dir(pattern2);
+                    end
+
+                    if ~isempty(files)
+                        pred_path = fullfile(files(1).folder, files(1).name);
+                        try
+                            df_file = readtable(pred_path);
+                        catch
+                            df_file = readtable(pred_path, 'ReadVariableNames', false);
+                        end
+
+                        varnames = df_file.Properties.VariableNames;
+                        if isempty(varnames) || (length(varnames) >= 2 && startsWith(varnames{1}, 'Var'))
+                            df_file.Properties.VariableNames = {'code', 'score'};
+                            varnames = df_file.Properties.VariableNames;
+                        end
+
+                        if any(strcmpi(varnames, 'score')) && ~any(strcmpi(varnames, 'final_score'))
+                            idx = find(strcmpi(varnames, 'score'), 1);
+                            df_file.Properties.VariableNames{idx} = 'final_score';
+                            varnames = df_file.Properties.VariableNames;
+                        end
+
+                        if ~any(strcmpi(varnames, 'code')) || ~any(strcmpi(varnames, 'final_score'))
+                            error('本地 prediction 文件不包含必须的列: code 和 score/final_score');
+                        end
+
+                        if ~any(strcmpi(varnames, 'score_name'))
+                            df_file.score_name = repmat({char(score_name)}, height(df_file), 1);
+                        end
+
+                        df = df_file(:, intersect({'code','final_score','score_name'}, df_file.Properties.VariableNames, 'stable'));
+                        return;
+                    else
+                        % 未找到本地文件，返回空表（或保持 df_from_db 如果存在）
+                        if isempty(df)
+                            fprintf('WARN: 未找到匹配的 prediction CSV 文件: %s\n', search_root);
+                        end
+                        return;
+                    end
+                catch MEfile
+                    fprintf('WARN: 从本地 prediction 文件读取失败: %s\n', MEfile.message);
+                    return;
+                end
+            end
         end
 
 

@@ -4,7 +4,15 @@ clear; clc; close all;
 script_dir = fileparts(mfilename('fullpath'));
 config_path = fullfile(script_dir, 'config', 'opt_project_config.xlsx');
 % 分离输入和输出路径
-input_path = fullfile(script_dir, '..', 'output', 'processing_data');  
+addpath(genpath('E:\YAMLMatlab_0.4.3'));
+currentFile = mfilename('fullpath');
+currentDir = fileparts(currentFile);
+
+path_config = fullfile(currentDir, '..','config', 'paths.yaml');
+
+path = ReadYaml(path_config);
+
+input_path = path.processing_data_dir;
 output_path = fullfile(script_dir, '..', 'output', 'backtest_results'); 
 
 % 添加工具路径

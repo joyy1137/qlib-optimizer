@@ -14,7 +14,7 @@ function batch_run_optimizer()
     config_path = fullfile(script_dir, 'config', 'opt_project_config.xlsx');
     
     try
-        [portfolio_info, ~, ~] = ConfigReaderToday(config_path,specifiedDate='2025-07-04');
+        [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
         fprintf('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
     catch ME
         warning(ME.identifier, '配置文件读取失败: %s，尝试遍历输出目录', ME.message);
@@ -29,9 +29,15 @@ function batch_run_optimizer()
     start_dates = portfolio_info.start_date;
     end_dates = portfolio_info.end_date;
     
-    % 分离输入和输出路径
-    input_root = fullfile(script_dir, '..', 'output', 'processing_data');  % 用于读取优化后的数据
-    output_root = fullfile(script_dir, '..', 'output', 'optimization_results'); % 用于存储优化结果
+    addpath(genpath('E:\YAMLMatlab_0.4.3'));
+    currentFile = mfilename('fullpath');
+    currentDir = fileparts(currentFile);
+
+    path_config = fullfile(currentDir, '..','config', 'paths.yaml');
+
+    path = ReadYaml(path_config);
+    input_root = path.processing_data_dir;  % 用于读取优化后的数据
+    %output_root = fullfile(script_dir, '..', 'output', 'optimization_results'); 
     
     % 遍历每个投资组合
     for i = 1:length(portfolio_names)
