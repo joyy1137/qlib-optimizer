@@ -152,8 +152,8 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
             T = stock_weight_constraint_matlab(df_score, df_index, stock_number, quantiles, up_params, low_params, constraint_mode, portfolio_constraint, portfolio_name, df_st);
             
         catch ME
-            fprintf('股票权重约束函数执行失败: %s\n', ME.message);
-            fprintf('错误位置: %s (第 %d 行)\n', ME.stack(1).name, ME.stack(1).line);
+            fprintf_log('股票权重约束函数执行失败: %s\n', ME.message);
+            fprintf_log('错误位置: %s (第 %d 行)\n', ME.stack(1).name, ME.stack(1).line);
             rethrow(ME);
         end
         
@@ -171,7 +171,7 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
             [~, score_idx] = ismember(string(updated_code_list), string(code_list));
             valid_score_idx = score_idx > 0;
             updated_score_vec(valid_score_idx) = score_vec(score_idx(valid_score_idx));
-            fprintf('使用匹配逻辑获取股票分数，匹配到 %d/%d 个股票\n', sum(valid_score_idx), length(updated_code_list));
+            fprintf_log('使用匹配逻辑获取股票分数，匹配到 %d/%d 个股票\n', sum(valid_score_idx), length(updated_code_list));
         end
         
         % 匹配初始权重向量
@@ -270,7 +270,7 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
         warning(ME.identifier, '股票权重约束文件导出失败: %s', ME.message);
         
         % 如果出错，尝试从df_score中获取高分股票
-        fprintf('尝试从df_score中获取高分股票...\n');
+    fprintf_log('尝试从df_score中获取高分股票...\n');
         
         % 第一步：获得有效的指数成分股
         if ~isempty(df_score) && ismember('final_score', df_score.Properties.VariableNames)
@@ -280,7 +280,7 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
             index_scores = index_stocks.final_score;
             index_weights = index_stocks.weight;
             
-            fprintf('第一步：从df_score中获取了 %d 个指数成分股\n', length(index_codes));
+            fprintf_log('第一步：从df_score中获取了 %d 个指数成分股\n', length(index_codes));
             
             % 第二步：获得有效的top股票
             % 从原始数据中获取所有股票，按分数排序
@@ -314,11 +314,11 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
                 end
             end
             
-            fprintf('第二步：获取了 %d 个top股票\n', length(top_codes));
+            fprintf_log('第二步：获取了 %d 个top股票\n', length(top_codes));
             
             % 第三步：检查总数是否满足stock_number
             total_stocks = length(index_codes) + length(top_codes);
-            fprintf('第三步：指数成分股(%d) + top股票(%d) = %d，目标数量: %d\n', ...
+            fprintf_log('第三步：指数成分股(%d) + top股票(%d) = %d，目标数量: %d\n', ...
                 length(index_codes), length(top_codes), total_stocks, stock_number);
             
             if total_stocks >= stock_number
@@ -327,11 +327,11 @@ function OutputGenerator(outdir, data_date, upper_tbl, lower_tbl, style_list, in
                 updated_score_vec = [index_scores; top_scores];
                 updated_init_weight = [index_weights; top_weights];
                 
-                fprintf('股票数量满足要求，最终股票数量: %d\n', length(updated_code_list));
+                fprintf_log('股票数量满足要求，最终股票数量: %d\n', length(updated_code_list));
             else
                 % 第四步：如果不足，从分数高的股票中补充
                 remaining_needed = stock_number - total_stocks;
-                fprintf('第四步：需要补充 %d 个股票\n', remaining_needed);
+                fprintf_log('第四步：需要补充 %d 个股票\n', remaining_needed);
                 
                 % 找到不在指数成分股和top股票中的股票
                 used_codes = [index_codes; top_codes];

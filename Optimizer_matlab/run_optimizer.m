@@ -1,13 +1,28 @@
 function run_optimizer()
+
+	currentFile = mfilename('fullpath');
+	currentDir = fileparts(currentFile);
+
+	logDir = fullfile(currentDir, '..', 'logs');
+	if ~exist(logDir, 'dir')
+		mkdir(logDir);
+	end
+	logFile = fullfile(logDir, sprintf('weight_optimizer.log'));
+	try
+		% diary(file) turns on logging to that file
+		diary(logFile);
+		fprintf_log('Run optimizer logging to: %s\n', logFile);
+	catch ME
+		warning('Could not start diary log to %s: %s', logFile, ME.message);
+	end
+	% Ensure diary is turned off on function exit
+	cleanupDiary = onCleanup(@() diary('off'));
+
 	javaaddpath("E:\qlib-optimizer\Optimizer_matlab\mysql-connector-j-9.3.0.jar")
 	addpath(genpath('E:\YAMLMatlab_0.4.3'));
 	savepath;
 	data_preparation();
 	batch_run_optimizer();
-
-
-	currentFile = mfilename('fullpath');
-	currentDir = fileparts(currentFile);
 
 	path_config = fullfile(currentDir, '..','config', 'paths.yaml');
 

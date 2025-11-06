@@ -15,6 +15,7 @@
 - `config/` - YAML 配置文件（根目录下）：
   - `paths.yaml` - 路径与资源配置（provider uri、model 存放路径、预测输出目录等）。
   - `db.yaml` - 数据库连接配置（用于 `MySQLImporter`）。
+- `logs/` -记录运行`main.py`之后的log
 
 
 ## 项目功能（简述）
@@ -61,4 +62,10 @@ pip install -r qlib_code\requirements.txt
   - 默认优化生成最新日期的权重。如需优化得到历史数据权重，需要将`.\Optimizer_matlab\merge_portfolio_dataframe.m`, `.\Optimizer_matlab\data_preparation.m`以及`.\Optimizer_matlab\batch_run_optimizer.m`中使用`ConfigReaderToday`的地方改成`ConfigReader`，并且将`.\Optimizer_matlab\config\config_db.m`中的`db_config.score_source = 'csv'`修改成`db_config.score_source = 'db'`
   
   - 如需生成特定日期的权重，可以修改上述使用`ConfigReaderToday`的地方，修改为`ConfigReaderToday(specifiedDate=指定日期)`。或者，在使用`ConfigReader`的情况下，直接修改`.\Optimizer_matlab\config\opt_project_config.m`中portfolio的开始和结束日期。
+
+  - 如需预测指定日期的score，运行
+  ```
+  python .\qlib_code\run_daily_update.py --date 预测日期
+  ```
+
 

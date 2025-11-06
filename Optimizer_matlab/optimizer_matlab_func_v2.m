@@ -9,11 +9,12 @@ persistent persistentPool;
 tic;
 
 % 打印接收到的路径参数
-fprintf('MATLAB函数?始处理路?: %s\n', path);
+fprintf_log('MATLAB函数开始处理路径: %s\n', path);
+try append_log_to_file('MATLAB函数开始处理路径: %s', path); catch, end
 
 try
         % 如果配置文件不存在，使用默认配置
-        fprintf('配置文件不存在，使用默认配置\n');
+    fprintf_log('配置文件不存在，使用默认配置\n');
         config = struct();
         config.worker_count_default = 6;
         config.input_files = struct();
@@ -44,61 +45,74 @@ try
     % 设置工作进程数量
     if nargin < 2 || isempty(worker_count)
         worker_count = config.worker_count_default;
-        fprintf('使用配置文件中的默认并行工作进程数量: %d\n', worker_count);
+    fprintf_log('使用配置文件中的默认并行工作进程数量: %d\n', worker_count);
     else
         worker_count = double(worker_count);
-        fprintf('使用指定的并行工作进程数?: %d\n', worker_count);
+    fprintf_log('使用指定的并行工作进程数: %d\n', worker_count);
     end
     
     % 配置并行?
-    fprintf('配置并行计算，最大工作进程数?: %d\n', worker_count);
+    fprintf_log('配置并行计算，最大工作进程数: %d\n', worker_count);
     %?查并行池是否已经存在且有?
     if isempty(persistentPool) || ~isvalid(persistentPool) || persistentPool.NumWorkers ~= worker_count
         %?查是否有其他并行?
         poolobj = gcp('nocreate');
         if ~isempty(poolobj)
             % 关闭现有并行?
-            fprintf('关闭现有并行池（%d个工作进程）\n', poolobj.NumWorkers);
+    fprintf_log('关闭现有并行池（%d个工作进程）\n', poolobj.NumWorkers);
+        try append_log_to_file('关闭现有并行池（%d个工作进程）', poolobj.NumWorkers); catch, end
             delete(poolobj);
         end
         % 创建新的并行池并存储在持久变量中
-        fprintf('创建新并行池?%d个工作进程\n', worker_count);
+    fprintf_log('创建新并行池 %d 个工作进程\n', worker_count);
+    try append_log_to_file('创建新并行池 %d 个工作进程', worker_count); catch, end
         persistentPool = parpool('local', worker_count);
+        try append_log_to_file('并行池创建完毕，NumWorkers=%d', persistentPool.NumWorkers); catch, end
+        % Ensure workers have access to utils (append_log_to_file, fprintf_log)
+        try
+            script_dir = fileparts(mfilename('fullpath'));
+            utils_path = fullfile(script_dir, 'utils');
+            pctRunOnAll(addpath(utils_path));
+            try append_log_to_file('已在所有 worker 上添加 utils 路径: %s', utils_path); catch, end
+        catch err
+            try append_log_to_file('无法在 worker 上添加 utils 路径: %s', err.message); catch, end
+        end
     else
         % 重用现有并行?
-        fprintf('复用现有并行池，%d个工作进程\n', persistentPool.NumWorkers);
+    fprintf_log('复用现有并行池，%d个工作进程\n', persistentPool.NumWorkers);
     end
     
     % 读取数据
-    fprintf('?始读取数?...\n');
+    fprintf_log('开始读取数据...\n');
+    try append_log_to_file('开始读取数据: %s', path); catch, end
     
     % 读取风格因子和行业因?
     try
         style_factor = readtable(fullfile(path, config.input_files.parameter_selecting), 'Sheet', 'style');
         style_len = size(style_factor, 1);
-        fprintf('风格因子数量: %d\n', style_len);
-        fprintf('风格因子表类?: %s, 维度: %dx%d\n', class(style_factor), size(style_factor, 1), size(style_factor, 2));
+    fprintf_log('风格因子数量: %d\n', style_len);
+    fprintf_log('风格因子表类型: %s, 维度: %dx%d\n', class(style_factor), size(style_factor, 1), size(style_factor, 2));
         
         industry_factor = readtable(fullfile(path, config.input_files.parameter_selecting), 'Sheet', 'industry');
         industry_len = size(industry_factor, 1);
-        fprintf('行业因子数量: %d\n', industry_len);
-        fprintf('行业因子表类?: %s, 维度: %dx%d\n', class(industry_factor), size(industry_factor, 1), size(industry_factor, 2));
+    fprintf_log('行业因子数量: %d\n', industry_len);
+    fprintf_log('行业因子表类型: %s, 维度: %dx%d\n', class(industry_factor), size(industry_factor, 1), size(industry_factor, 2));
     catch e
-        fprintf('读取因子数据失败: %s，使用默认?\n', e.message);
+    fprintf_log('读取因子数据失败: %s，使用默认\n', e.message);
         style_len = 9;  % 默认风格因子数量
         industry_len = 30;  % 默认行业因子数量
-        fprintf('使用默认风格因子数量: %d, 行业因子数量: %d\n', style_len, industry_len);
+    fprintf_log('使用默认风格因子数量: %d, 行业因子数量: %d\n', style_len, industry_len);
     end
     
     % 读取股票风险暴露
     stock_risk_path = fullfile(path, config.input_files.stock_risk);
-    fprintf('读取股票风险暴露: %s\n', stock_risk_path);
+    fprintf_log('读取股票风险暴露: %s\n', stock_risk_path);
     stock_risk = importdata(stock_risk_path);
     if isstruct(stock_risk)
-        fprintf('股票风险暴露包含字段: %s\n', strjoin(fieldnames(stock_risk), ', '));
+    fprintf_log('股票风险暴露包含字段: %s\n', strjoin(fieldnames(stock_risk), ', '));
         stock_risk = stock_risk.data;
     end
-    fprintf('股票风险暴露数据类型: %s, 维度: %dx%d\n', class(stock_risk), size(stock_risk, 1), size(stock_risk, 2));
+    fprintf_log('股票风险暴露数据类型: %s, 维度: %dx%d\n', class(stock_risk), size(stock_risk, 1), size(stock_risk, 2));
     stock_risk(isnan(stock_risk)) = 0;
     stock_risk(isinf(stock_risk)) = 0;
     
@@ -114,62 +128,62 @@ try
     
     % 读取股票分数
     stock_score_path = fullfile(path, config.input_files.stock_score);
-    fprintf('读取股票分数: %s\n', stock_score_path);
+    fprintf_log('读取股票分数: %s\n', stock_score_path);
     stock_score = importdata(stock_score_path);
     if isstruct(stock_score)
-        fprintf('股票分数包含字段: %s\n', strjoin(fieldnames(stock_score), ', '));
+    fprintf_log('股票分数包含字段: %s\n', strjoin(fieldnames(stock_score), ', '));
         stock_score = stock_score.data;
     end
-    fprintf('股票分数数据类型: %s, 维度: %dx%d\n', class(stock_score), size(stock_score, 1), size(stock_score, 2));
+    fprintf_log('股票分数数据类型: %s, 维度: %dx%d\n', class(stock_score), size(stock_score, 1), size(stock_score, 2));
     % 读取权重下限
     lower_weight_path = fullfile(path, config.input_files.lower_weight);
-    fprintf('读取权重下限: %s\n', lower_weight_path);
+    fprintf_log('读取权重下限: %s\n', lower_weight_path);
     lower_weight = importdata(lower_weight_path);
     if isstruct(lower_weight)
-        fprintf('权重下限包含字段: %s\n', strjoin(fieldnames(lower_weight), ', '));
+    fprintf_log('权重下限包含字段: %s\n', strjoin(fieldnames(lower_weight), ', '));
         lower_weight = lower_weight.data;
     end
-    fprintf('权重下限数据类型: %s, 维度: %dx%d\n', class(lower_weight), size(lower_weight, 1), size(lower_weight, 2));
+    fprintf_log('权重下限数据类型: %s, 维度: %dx%d\n', class(lower_weight), size(lower_weight, 1), size(lower_weight, 2));
     
     % 读取权重上限
     upper_weight_path = fullfile(path, config.input_files.upper_weight);
-    fprintf('读取权重上限: %s\n', upper_weight_path);
+    fprintf_log('读取权重上限: %s\n', upper_weight_path);
     upper_weight = importdata(upper_weight_path);
     if isstruct(upper_weight)
-        fprintf('权重上限包含字段: %s\n', strjoin(fieldnames(upper_weight), ', '));
+    fprintf_log('权重上限包含字段: %s\n', strjoin(fieldnames(upper_weight), ', '));
         upper_weight = upper_weight.data;
     end
-    fprintf('权重上限数据类型: %s, 维度: %dx%d\n', class(upper_weight), size(upper_weight, 1), size(upper_weight, 2));
+    fprintf_log('权重上限数据类型: %s, 维度: %dx%d\n', class(upper_weight), size(upper_weight, 1), size(upper_weight, 2));
     
     % 读取指数初始权重
     index_initial_weight_path = fullfile(path, config.input_files.index_initial_weight);
-    fprintf('读取指数初始权重: %s\n', index_initial_weight_path);
+    fprintf_log('读取指数初始权重: %s\n', index_initial_weight_path);
     index_initial_weight = importdata(index_initial_weight_path);
     if isstruct(index_initial_weight)
-        fprintf('指数初始权重包含字段: %s\n', strjoin(fieldnames(index_initial_weight), ', '));
+    fprintf_log('指数初始权重包含字段: %s\n', strjoin(fieldnames(index_initial_weight), ', '));
         index_initial_weight = index_initial_weight.data;
     end
-    fprintf('指数初始权重数据类型: %s, 维度: %dx%d\n', class(index_initial_weight), size(index_initial_weight, 1), size(index_initial_weight, 2));
+    fprintf_log('指数初始权重数据类型: %s, 维度: %dx%d\n', class(index_initial_weight), size(index_initial_weight, 1), size(index_initial_weight, 2));
     
     % 读取股票特异风险
     stock_specific_risk_path = fullfile(path, config.input_files.stock_specific_risk);
-    fprintf('读取股票特异风险: %s\n', stock_specific_risk_path);
+    fprintf_log('读取股票特异风险: %s\n', stock_specific_risk_path);
     stock_sperisk = importdata(stock_specific_risk_path);
     if isstruct(stock_sperisk)
-        fprintf('股票特异风险包含字段: %s\n', strjoin(fieldnames(stock_sperisk), ', '));
+    fprintf_log('股票特异风险包含字段: %s\n', strjoin(fieldnames(stock_sperisk), ', '));
         stock_sperisk = stock_sperisk.data;
     end
-    fprintf('股票特异风险数据类型: %s, 维度: %dx%d\n', class(stock_sperisk), size(stock_sperisk, 1), size(stock_sperisk, 2));
+    fprintf_log('股票特异风险数据类型: %s, 维度: %dx%d\n', class(stock_sperisk), size(stock_sperisk, 1), size(stock_sperisk, 2));
     
     % 读取因子协方差
     factor_cov_path = fullfile(path, config.input_files.factor_cov);
-    fprintf('读取因子协方差: %s\n', factor_cov_path);
+    fprintf_log('读取因子协方差: %s\n', factor_cov_path);
     factor_cov = importdata(factor_cov_path);
     if isstruct(factor_cov)
-        fprintf('因子协方差包含字段: %s\n', strjoin(fieldnames(factor_cov), ', '));
+    fprintf_log('因子协方差包含字段: %s\n', strjoin(fieldnames(factor_cov), ', '));
         factor_cov = factor_cov.data;
     end
-    fprintf('因子协方差数据类型: %s, 维度: %dx%d\n', class(factor_cov), size(factor_cov, 1), size(factor_cov, 2));
+    fprintf_log('因子协方差数据类型: %s, 维度: %dx%d\n', class(factor_cov), size(factor_cov, 1), size(factor_cov, 2));
     
     % 读取因子约束上限
     factor_constraint_upper_path = fullfile(path, config.input_files.factor_constraint_upper);
@@ -179,15 +193,15 @@ try
     if isstruct(factor_constraint_upper)
         factor_constraint_upper = factor_constraint_upper.data;
     end
-    fprintf('因子约束上限数据类型: %s, 维度: %dx%d\n', class(factor_constraint_upper), size(factor_constraint_upper, 1), size(factor_constraint_upper, 2));
+    fprintf_log('因子约束上限数据类型: %s, 维度: %dx%d\n', class(factor_constraint_upper), size(factor_constraint_upper, 1), size(factor_constraint_upper, 2));
     te_value = factor_constraint_upper(1);
-    fprintf('跟踪误差约束: %f\n', te_value);
+    fprintf_log('跟踪误差约束: %f\n', te_value);
     factor_constraint_upper = factor_constraint_upper(2:end)';
-    fprintf('处理后的因子约束上限维度: %dx%d\n', size(factor_constraint_upper, 1), size(factor_constraint_upper, 2));
+    fprintf_log('处理后的因子约束上限维度: %dx%d\n', size(factor_constraint_upper, 1), size(factor_constraint_upper, 2));
     
     % 读取因子约束下限
     factor_constraint_lower_path = fullfile(path, config.input_files.factor_constraint_lower);
-    fprintf('读取因子约束下限: %s\n', factor_constraint_lower_path);
+    fprintf_log('读取因子约束下限: %s\n', factor_constraint_lower_path);
     factor_constraint_lower = importdata(factor_constraint_lower_path);
     if isstruct(factor_constraint_lower)
         factor_constraint_lower = factor_constraint_lower.data;
@@ -196,10 +210,10 @@ try
    
     % 读取换手率约束
     turnover_constraint_path = fullfile(path, config.input_files.turnover_constraint);
-    fprintf('读取换手率约束: %s\n', turnover_constraint_path);
+    fprintf_log('读取换手率约束: %s\n', turnover_constraint_path);
     turnover_constraint = importdata(turnover_constraint_path);
     if isstruct(turnover_constraint)
-        fprintf('换手率约束包含字段: %s\n', strjoin(fieldnames(turnover_constraint), ', '));
+    fprintf_log('换手率约束包含字段: %s\n', strjoin(fieldnames(turnover_constraint), ', '));
         turnover_constraint = turnover_constraint.data;
     end
     max_turnover = turnover_constraint(1);
@@ -610,11 +624,16 @@ try
     fprintf('线性等式约束维度: Aeq(%dx%d), beq(%dx%d)\n', size(Aeq, 1), size(Aeq, 2), size(beq, 1), size(beq, 2));
     
     % 设置优化选项
+    % For more reliable logging capture, run fmincon without internal
+    % parallel workers (workers may print on their own stdout which the
+    % main diary doesn't capture). Set UseParallel=false to force serial
+    % evaluation of finite differences. This is the fastest fix to ensure
+    % all fprintf output appears in the main log file.
     options = optimoptions('fmincon', ...
         'Display', 'iter-detailed', ...  % 更详细的输出
         'Algorithm', config.optimization_params.Algorithm, ...
         'MaxFunctionEvaluations', config.optimization_params.MaxFunctionEvaluations, ...
-        'UseParallel', config.optimization_params.UseParallel, ...
+        'UseParallel', false, ...
         'CheckGradients', true, ...  % 检查梯度
         'FiniteDifferenceType', 'central', ...  % 使用中心差分
         'FiniteDifferenceStepSize', 1e-6, ...  % 设置差分步长
@@ -629,7 +648,9 @@ try
     
     % 求解优化问题
     fprintf('开始求解优化问题...\n');
+    try append_log_to_file('开始求解优化问题'); catch, end
     [x, fval, exitflag, output] = fmincon(f, x0, A, b, Aeq, beq, lb, ub, nonlcon, options);
+    try append_log_to_file('fmincon 返回: exitflag=%d, fval=%f', exitflag, fval); catch, end
     
     % 检查是否有更好的可行解
     if isfield(output, 'bestfeasible') && ~isempty(output.bestfeasible)
@@ -669,6 +690,7 @@ try
     
     % 输出优化结果信息
     fprintf('优化完成，输出标志: %d\n', exitflag);
+    try append_log_to_file('优化完成，输出标志: %d', exitflag); catch, end
     fprintf('目标函数值: %f\n', fval);
     
     % 根据退出标志输出详细信息
@@ -760,7 +782,9 @@ try
 catch e
     % 捕获并处理错误
     fprintf('错误: %s\n', e.message);
+    try append_log_to_file('错误: %s', e.message); catch, end
     fprintf('堆栈跟踪:\n');
+    try append_log_to_file('堆栈跟踪: %s', getReport(e,'basic')); catch, end
     disp(e.stack);
     
     % 确保返回值不为空

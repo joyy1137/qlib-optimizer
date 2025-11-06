@@ -9,13 +9,13 @@ try
         warning('Running python script failed (status=%d). Output:\n%s', status, cmdout);
     end
 
-% catch ME
-% 	% Use identifier-aware warning format to satisfy MATLAB diagnostics
-% 	if isprop(ME, 'identifier') && ~isempty(ME.identifier)
-% 		id = ME.identifier;
-% 	else
-% 		id = 'run_optimizer:pythonImportFail';
-% 	end
-% 	warning(id, 'Failed to launch Python importer: %s', ME.message);
+catch ME
+	% Use identifier-aware warning format to satisfy MATLAB diagnostics
+	if isprop(ME, 'identifier') && ~isempty(ME.identifier)
+		id = ME.identifier;
+	else
+		id = 'run_optimizer:pythonImportFail';
+	end
+	warning(id, 'Failed to launch Python importer: %s', ME.message);
 end
-% run_optimizer();
+run_optimizer();

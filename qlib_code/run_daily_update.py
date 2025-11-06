@@ -5,6 +5,7 @@ import sys
 import os
 from pathlib import Path
 import yaml
+from typing import TextIO
 
 WORKDIR = Path(__file__).resolve().parent
 cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
@@ -15,11 +16,67 @@ qlib_bin_dir = cfg['qlib_bin_dir']
 qlib_workdir = Path(cfg['qlib_workdir'])
 
 
+class Tee:
+    """Duplicate writes to original stream and a file-like object.
+
+    Writes are attempted to both the original stream (usually the console)
+    and the logfile. flush() is proxied to both.
+    """
+    def __init__(self, orig: TextIO, logfile: TextIO) -> None:
+        self.orig = orig
+        self.logfile = logfile
+
+    def write(self, data: str) -> None:
+        try:
+            self.orig.write(data)
+        except Exception:
+            pass
+        try:
+            self.logfile.write(data)
+        except Exception:
+            pass
+
+    def flush(self) -> None:
+        try:
+            self.orig.flush()
+        except Exception:
+            pass
+        try:
+            self.logfile.flush()
+        except Exception:
+            pass
+
+
 def run_cmd(cmd, cwd=None, env=None):
-    print("\n> ", " ".join(cmd))
-    res = subprocess.run(cmd, cwd=cwd or WORKDIR, env=env or os.environ, shell=False)
-    if res.returncode != 0:
-        raise SystemExit(f"Command failed (exit {res.returncode}): {' '.join(cmd)}")
+    # Print the command. Use map(str, ...) to support Path objects.
+    print("\n> ", " ".join(map(str, cmd)))
+
+    proc = subprocess.Popen(
+        list(map(str, cmd)),
+        cwd=str(cwd or WORKDIR),
+        env=env or os.environ,
+        shell=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
+        text=True,
+        bufsize=1,
+    )
+
+    # Stream lines as they arrive. If the process never writes anything this
+    # loop will simply wait until the child exits; that's the intended
+    # behaviour for seeing live logs.
+    try:
+        if proc.stdout is not None:
+            for line in proc.stdout:
+                # Preserve original formatting
+                print(line, end="")
+    finally:
+        # Ensure we reap the child process
+        proc.wait()
+
+    if proc.returncode != 0:
+        raise SystemExit(f"Command failed (exit {proc.returncode}): {' '.join(map(str, cmd))}")
 
 
 def main():
@@ -30,10 +87,36 @@ def main():
     parser.add_argument("--qlib_workdir", default=qlib_workdir)
     parser.add_argument("--include_fields", default="open,close,high,low,volume,factor,money")
     parser.add_argument("--dump_script", default=str(qlib_workdir/ "scripts" / "dump_bin.py"))
+    parser.add_argument("--log-file", default=str(WORKDIR / "../logs/score_prediction.log"), help="Path to append log output")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
-    py = sys.executable
+    # Open log file and tee stdout/stderr so output is also saved locally.
+    log_f = None
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    try:
+        try:
+            log_f = open(args.log_file, "a", encoding="utf-8")
+        except Exception as e:
+            print(f"Warning: cannot open log file {args.log_file} for append: {e}")
+            log_f = None
+
+        if log_f is not None:
+            sys.stdout = Tee(original_stdout, log_f)
+            sys.stderr = Tee(original_stderr, log_f)
+
+        py = sys.executable
+    except Exception:
+        # If anything goes wrong early, restore streams and re-raise
+        if log_f:
+            try:
+                log_f.close()
+            except Exception:
+                pass
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        raise
 
     tushare_script = WORKDIR / "tushare2csv.py"
     if not tushare_script.exists():
@@ -76,6 +159,23 @@ def main():
     run_cmd([py, str(update_script)], env=env)
 
     print("\n每日更新完成")
+
+    # Restore stdout/stderr and close log file
+    try:
+        sys.stdout.flush()
+    except Exception:
+        pass
+    try:
+        sys.stderr.flush()
+    except Exception:
+        pass
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
+    if log_f:
+        try:
+            log_f.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 function data_preparation()
 % 协调各个模块完成整个流程
 
-    clear; clc; close all;
+    % clear; clc; close all;
 
     script_dir = fileparts(mfilename('fullpath'));
 
@@ -32,7 +32,7 @@ function data_preparation()
         pname = portfolio_names{i};
         uname = user_names{i};
         
-        fprintf('\n处理投资组合: %s \n', pname);
+    fprintf_log('\n处理投资组合: %s \n', pname);
         
         % 获取当前投资组合的日期范围
         current_start = start_dates(i);
@@ -51,7 +51,7 @@ function data_preparation()
             end_date_str = char(current_end);
         end
         
-        fprintf('  日期范围: %s 到 %s\n', start_date_str, end_date_str);
+    fprintf_log('  日期范围: %s 到 %s\n', start_date_str, end_date_str);
         
         % 为当前投资组合获取工作日列表
         try

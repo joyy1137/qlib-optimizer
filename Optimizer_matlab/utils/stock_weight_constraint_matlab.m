@@ -49,7 +49,7 @@ if nargin >= 8 && ~isempty(portfolio_constraint) && nargin >= 9 && ~isempty(port
             top_weight_upper = str2double(portfolio_constraint{top_weight_upper_idx, portfolio_col_idx});
             if isnan(top_weight_upper)
                 top_weight_upper = 1.0;
-                fprintf('警告：top_weight_upper参数读取失败，使用默认值%.2f\n', top_weight_upper);
+                fprintf_log('警告：top_weight_upper参数读取失败，使用默认值%.2f\n', top_weight_upper);
             end
         end
         
@@ -59,7 +59,7 @@ if nargin >= 8 && ~isempty(portfolio_constraint) && nargin >= 9 && ~isempty(port
             top_weight_lower = str2double(portfolio_constraint{top_weight_lower_idx, portfolio_col_idx});
             if isnan(top_weight_lower)
                 top_weight_lower = 0.8;
-                fprintf('警告：top_weight_lower参数读取失败，使用默认值%.2f\n', top_weight_lower);
+                fprintf_log('警告：top_weight_lower参数读取失败，使用默认值%.2f\n', top_weight_lower);
             end
         end
     end
@@ -171,7 +171,7 @@ for k = 1:length(up_params)
     idx = (T.group == k);
     if nargin < 7 || isempty(constraint_mode)
         mode = 'v1'; % 默认v1
-        fprintf('警告：constraint_mode未指定，使用默认v1模式\n');
+    fprintf_log('警告：constraint_mode未指定，使用默认v1模式\n');
     else
         mode = lower(constraint_mode); % 转换为小写
     end
@@ -266,7 +266,7 @@ if nargin >= 10 && ~isempty(df_st)
 else
     % 如果没有ST数据，使用原始指数成分股
     index_codes_filtered = index_codes;
-    fprintf('警告：没有ST股票数据，指数成分股未进行ST过滤\n');
+    fprintf_log('警告：没有ST股票数据，指数成分股未进行ST过滤\n');
 end
 
 % 合并所有需要保留的股票代码（已过滤ST的指数成分股 + top股票）
@@ -456,8 +456,8 @@ additional_count = final_count - index_count - top_count; % 补充的高分股�
 total_index_original = height(df_index);
 total_index_after_st_filter = length(index_codes_filtered);
 
-fprintf('目标股票数量: %d\n', target_stock_number);
-fprintf('最终股票数量: %d (其中指数成分股: %d, top股票: %d, 补充股票: %d)\n', final_count, index_count, top_count, additional_count);
+fprintf_log('目标股票数量: %d\n', target_stock_number);
+fprintf_log('最终股票数量: %d (其中指数成分股: %d, top股票: %d, 补充股票: %d)\n', final_count, index_count, top_count, additional_count);
 
 stock_weight_constraint = T_filtered;
 

@@ -1,7 +1,7 @@
 function batch_run_optimizer()  
     % 批量调用 optimizer_matlab_func_v2 的脚本
     % 根据配置文件中的 portfolio_info 批量优化多个组合
-    clear; clc; close all;
+    % clear; clc; close all;
 
     script_dir = fileparts(mfilename('fullpath'));
     
@@ -15,7 +15,7 @@ function batch_run_optimizer()
     
     try
         [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
-        fprintf('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+    fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
     catch ME
         warning(ME.identifier, '配置文件读取失败: %s，尝试遍历输出目录', ME.message);
         % 如果配置文件读取失败，回退到原来的目录遍历方式
@@ -44,7 +44,7 @@ function batch_run_optimizer()
         pname = portfolio_names{i};
         uname = user_names{i};
         
-        fprintf('开始优化投资组合: %s \n', pname);
+    fprintf_log('开始优化投资组合: %s \n', pname);
         
         % 获取当前投资组合的日期范围
         current_start = start_dates(i);
@@ -63,7 +63,7 @@ function batch_run_optimizer()
             end_date_str = char(current_end);
         end
         
-        fprintf('  日期范围: %s 到 %s\n', start_date_str, end_date_str);
+    fprintf_log('  日期范围: %s 到 %s\n', start_date_str, end_date_str);
         
         % 为当前投资组合获取工作日列表
         try
@@ -94,7 +94,7 @@ function batch_run_optimizer()
             input_path = fullfile(portfolio_path, wday_str);
             
             if ~exist(input_path, 'dir')
-                fprintf('日期目录不存在: %s，跳过\n', input_path);
+                fprintf_log('日期目录不存在: %s，跳过\n', input_path);
                 continue;
             end
             
@@ -104,7 +104,7 @@ function batch_run_optimizer()
             files_exist = true;
             for k = 1:length(required_files)
                 if ~exist(fullfile(input_path, required_files{k}), 'file')
-                    fprintf('缺少必要文件 %s，跳过 %s\n', required_files{k}, input_path);
+                    fprintf_log('缺少必要文件 %s，跳过 %s\n', required_files{k}, input_path);
                     files_exist = false;
                     break;
                 end
@@ -128,22 +128,22 @@ function batch_run_optimizer()
             end
             
             try
-                fprintf('正在优化: %s - %s\n', pname, wday_str);
+                fprintf_log('正在优化: %s - %s\n', pname, wday_str);
                 optimizer_matlab_func_v2(input_path, yes_path, 6);
-                fprintf('优化完成: %s - %s\n', pname, wday_str);
+                fprintf_log('优化完成: %s - %s\n', pname, wday_str);
             catch ME
-                fprintf('优化失败: %s - %s\n', pname, wday_str);
-                fprintf('错误信息: %s\n', ME.message);
+                fprintf_log('优化失败: %s - %s\n', pname, wday_str);
+                fprintf_log('错误信息: %s\n', ME.message);
                 % 显示错误堆栈的前几层
                 if length(ME.stack) > 0
-                    fprintf('错误位置: %s (第 %d 行)\n', ME.stack(1).name, ME.stack(1).line);
+                    fprintf_log('错误位置: %s (第 %d 行)\n', ME.stack(1).name, ME.stack(1).line);
                 end
             end
         end
         
-        fprintf('投资组合 %s 优化完成\n', pname);
+        fprintf_log('投资组合 %s 优化完成\n', pname);
     end
     
-    fprintf('所有投资组合批量优化完成\n');
+    fprintf_log('所有投资组合批量优化完成\n');
 end
 

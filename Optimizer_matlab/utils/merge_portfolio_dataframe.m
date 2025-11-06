@@ -19,20 +19,29 @@ function df_result = merge_portfolio_dataframe(output_path)
     if ~exist(output_path, 'dir')
         try
             mkdir(output_path);
-            fprintf('创建输出目录: %s\n', output_path);
+            fprintf_log('创建输出目录: %s\n', output_path);
         catch ME
             error('无法创建输出目录 %s: %s', output_path, ME.message);
         end
     end
 
     script_dir = fileparts(mfilename('fullpath'));
+    % Ensure we have a repo-level logs directory and a file to append
+    log_dir = fullfile(script_dir, '..', '..', 'logs');
+    if ~exist(log_dir, 'dir')
+        try
+            mkdir(log_dir);
+        catch
+        end
+    end
+    log_file = fullfile(log_dir, 'weight_optimizer.log');
     config_path = fullfile(script_dir,'..', 'config', 'opt_project_config.xlsx');
     
     % 读取配置文件获取投资组合基础信息
-    fprintf('正在读取配置文件: %s\n', config_path);
+    fprintf_log('正在读取配置文件: %s\n', config_path);
     try
         [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
-        fprintf('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+    fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
     catch ME
         error('读取配置文件失败: %s', ME.message);
     end
@@ -86,11 +95,11 @@ function df_result = merge_portfolio_dataframe(output_path)
         
         % 检查路径是否存在
         if ~exist(portfolio_path, 'dir')
-            fprintf('警告: 投资组合路径不存在: %s，跳过\n', portfolio_path);
+            fprintf_log('警告: 投资组合路径不存在: %s，跳过\n', portfolio_path);
             continue;
         end
         
-        fprintf('\n处理投资组合: %s (%s)\n', portfolio_name, user_name);
+    fprintf_log('\n处理投资组合: %s (%s)\n', portfolio_name, user_name);
         
         % 获取日期范围
         if iscell(start_dates)
@@ -144,16 +153,16 @@ function df_result = merge_portfolio_dataframe(output_path)
                 date_str_list = cellstr(string(workday_list));
             end
         catch ME
-            fprintf('  警告: 获取工作日列表失败: %s，跳过\n', ME.message);
+            fprintf_log('  警告: 获取工作日列表失败: %s，跳过\n', ME.message);
             continue;
         end
         
         if isempty(date_str_list)
-            fprintf('  警告: 投资组合 %s 在配置日期范围内没有工作日，跳过\n', portfolio_name);
+            fprintf_log('  警告: 投资组合 %s 在配置日期范围内没有工作日，跳过\n', portfolio_name);
             continue;
         end
         
-        fprintf('  日期范围: %s 到 %s，共 %d 个工作日\n', ...
+    fprintf_log('  日期范围: %s 到 %s，共 %d 个工作日\n', ...
             datestr(start_date_dt, 'yyyy-mm-dd'), ...
             datestr(end_date_dt, 'yyyy-mm-dd'), ...
             length(date_str_list));
@@ -169,19 +178,19 @@ function df_result = merge_portfolio_dataframe(output_path)
                 weight_file = fullfile(date_path, 'weight.csv');
                 
                 if ~exist(code_file, 'file')
-                    fprintf('  警告: %s/%s 缺少 Stock_code.csv，跳过\n', portfolio_name, valuation_date);
+                    fprintf_log('  警告: %s/%s 缺少 Stock_code.csv，跳过\n', portfolio_name, valuation_date);
                     continue;
                 end
                 
                 if ~exist(weight_file, 'file')
-                    fprintf('  警告: %s/%s 缺少 weight.csv，跳过\n', portfolio_name, valuation_date);
+                    fprintf_log('  警告: %s/%s 缺少 weight.csv，跳过\n', portfolio_name, valuation_date);
                     continue;
                 end
                 
                 % 读取Stock_code.csv（跳过第一行日期）
                 df_code = readtable(code_file, 'ReadVariableNames', false, 'HeaderLines', 1);
                 if isempty(df_code)
-                    fprintf('  警告: %s/%s Stock_code.csv 为空，跳过\n', portfolio_name, valuation_date);
+                    fprintf_log('  警告: %s/%s Stock_code.csv 为空，跳过\n', portfolio_name, valuation_date);
                     continue;
                 end
                 code = df_code{:, 1};
@@ -189,14 +198,14 @@ function df_result = merge_portfolio_dataframe(output_path)
                 % 读取权重数据
                 df_weight = readtable(weight_file, 'ReadVariableNames', false);
                 if isempty(df_weight)
-                    fprintf('  警告: %s/%s weight.csv 为空，跳过\n', portfolio_name, valuation_date);
+                    fprintf_log('  警告: %s/%s weight.csv 为空，跳过\n', portfolio_name, valuation_date);
                     continue;
                 end
                 weight = df_weight{:, 1};
                 
                 % 验证长度一致
                 if length(code) ~= length(weight)
-                    fprintf('  警告: %s/%s 股票代码数量(%d)与权重数量(%d)不一致，跳过\n', ...
+                    fprintf_log('  警告: %s/%s 股票代码数量(%d)与权重数量(%d)不一致，跳过\n', ...
                         portfolio_name, valuation_date, length(code), length(weight));
                     continue;
                 end
@@ -234,8 +243,8 @@ function df_result = merge_portfolio_dataframe(output_path)
                     df_all = [df_all; df_current];
                 end
                 
-            catch ME
-                fprintf('  错误: 处理 %s/%s 时出错: %s\n', portfolio_name, valuation_date, ME.message);
+                catch ME
+                fprintf_log('  错误: 处理 %s/%s 时出错: %s\n', portfolio_name, valuation_date, ME.message);
                 continue;
             end
         end
@@ -282,7 +291,7 @@ function df_result = merge_portfolio_dataframe(output_path)
                     
                     try
                         writetable(df_export, outFile);
-                        fprintf('导出: %s\n', outFile);
+                        fprintf_log('导出: %s\n', outFile);
                     catch ME
                         warning('导出失败 %s/%s: %s', current_portfolio, current_date, ME.message);
                     end
@@ -301,4 +310,32 @@ function df_result = merge_portfolio_dataframe(output_path)
         end
     end
 
+end
+
+function append_log_to_file(log_file, fmt, varargin)
+    % Append a timestamped message to log_file. Swallow any errors to avoid
+    % impacting the main processing flow.
+    try
+        fid = fopen(log_file, 'a');
+        if fid > 0
+            try
+                timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
+                if nargin > 1
+                    msg = sprintf(fmt, varargin{:});
+                else
+                    msg = fmt;
+                end
+                % Ensure newline at end
+                if isempty(msg) || msg(end) ~= char(10)
+                    msg = [msg '\n'];
+                end
+                fprintf(fid, '%s %s', timestamp, msg);
+            catch
+                % ignore formatting/writing errors
+            end
+            fclose(fid);
+        end
+    catch
+        % ignore file open errors
+    end
 end

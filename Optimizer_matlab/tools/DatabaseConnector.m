@@ -75,14 +75,14 @@ classdef DatabaseConnector
                     if ~isempty(fallback_result)
                         % 使用找到的最近日期重新查询
                         fallback_date = char(fallback_result.valuation_date(1));
-                        fprintf('INFO: 未找到 %s 的数据，使用最近日期: %s\n', actual_date_str, fallback_date);
+                        fprintf_log('INFO: 未找到 %s 的数据，使用最近日期: %s\n', actual_date_str, fallback_date);
                         
                         fallback_data_query = ['SELECT code, weight FROM data_indexcomponent ', ...
                                               'WHERE organization = ''', organization, ''' ', ...
                                               'AND valuation_date = ''', fallback_date, ''''];
                         df_result = fetch(conn, fallback_data_query);
                     else
-                        fprintf('WARNING: 未找到 %s 及之前的任何数据\n', actual_date_str);
+                        fprintf_log('WARNING: 未找到 %s 及之前的任何数据\n', actual_date_str);
                     end
                 end
                 
@@ -573,12 +573,12 @@ classdef DatabaseConnector
                     else
                         % 未找到本地文件，返回空表（或保持 df_from_db 如果存在）
                         if isempty(df)
-                            fprintf('WARN: 未找到匹配的 prediction CSV 文件: %s\n', search_root);
+                            fprintf_log('WARN: 未找到匹配的 prediction CSV 文件: %s\n', search_root);
                         end
                         return;
                     end
                 catch MEfile
-                    fprintf('WARN: 从本地 prediction 文件读取失败: %s\n', MEfile.message);
+                    fprintf_log('WARN: 从本地 prediction 文件读取失败: %s\n', MEfile.message);
                     return;
                 end
             end
@@ -628,7 +628,7 @@ classdef DatabaseConnector
             end
             
             if ~isempty(problematic_indices)
-                fprintf('发现 %d 个异常列名，正在修复...\n', length(problematic_indices));
+                fprintf_log('发现 %d 个异常列名，正在修复...\n', length(problematic_indices));
                 
                 % 尝试从数据库获取正确的列名
                 try
@@ -648,7 +648,7 @@ classdef DatabaseConnector
                         % 过滤掉不需要的列，保持原始顺序
                         db_column_names = db_column_names(~ismember(db_column_names, {'valuation_date', 'update_time', 'organization'}));
                         
-                        fprintf('数据库中的列名 (共%d个): %s\n', length(db_column_names), strjoin(db_column_names, ', '));
+                        fprintf_log('数据库中的列名 (共%d个): %s\n', length(db_column_names), strjoin(db_column_names, ', '));
                         
                         % 创建修复后的列名数组
                         fixed_cols = current_cols;
@@ -670,7 +670,7 @@ classdef DatabaseConnector
                                 % 检查新名称是否已经存在
                                 if ~ismember(new_name, fixed_cols)
                                     fixed_cols{idx} = new_name;
-                                    fprintf('  修复列名: %s -> %s\n', old_name, new_name);
+                                    fprintf_log('  修复列名: %s -> %s\n', old_name, new_name);
                                 else
                                     % 如果名称已存在，添加后缀
                                     counter = 1;
@@ -680,26 +680,26 @@ classdef DatabaseConnector
                                         unique_name = sprintf('%s_%d', new_name, counter);
                                     end
                                     fixed_cols{idx} = unique_name;
-                                    fprintf('  修复列名: %s -> %s\n', old_name, unique_name);
+                                    fprintf_log('  修复列名: %s -> %s\n', old_name, unique_name);
                                 end
                             else
                                 % 如果超出数据库列名范围，使用默认名称
                                 new_name = sprintf('factor_%d', i);
                                 fixed_cols{idx} = new_name;
-                                fprintf('  修复列名: %s -> %s (默认名称)\n', old_name, new_name);
+                                    fprintf_log('  修复列名: %s -> %s (默认名称)\n', old_name, new_name);
                             end
                         end
                         
                         % 应用修复后的列名
                         df.Properties.VariableNames = fixed_cols;
-                        fprintf('列名修复完成\n');
+                        fprintf_log('列名修复完成\n');
                         
                     else
                         error('无法获取数据库列名');
                     end
                     
                 catch ME
-                    fprintf('无法从数据库获取列名，跳过修复: %s\n', ME.message);
+                    fprintf_log('无法从数据库获取列名，跳过修复: %s\n', ME.message);
                     % 如果无法修复，保持原始列名
                 end
             end

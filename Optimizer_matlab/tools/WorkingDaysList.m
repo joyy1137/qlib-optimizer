@@ -33,6 +33,6 @@ function date_list = WorkingDaysList(start_date, end_date)
     date_list = fetch(conn, query);
     close(conn);
 
-    fprintf('工作日列表: %s 到 %s，共 %d 天\n', ...
+    fprintf_log('工作日列表: %s 到 %s，共 %d 天\n', ...
         start_date_str, end_date_str, height(date_list));
 end
