@@ -71,7 +71,7 @@ if __name__ == "__main__":
     study = optuna.Study(study_name="LGBM_158", storage="sqlite:///db.sqlite3")
  
     # R.start(experiment_name="lgbm_optuna", recorder_name="run_1")
-    study.optimize(lambda trial: objective(trial, dataset), n_trials=60, n_jobs=1)
+    study.optimize(lambda trial: objective(trial, dataset), n_trials=200, n_jobs=1)
 
    
     if len(study.trials) > 0 and getattr(study, "best_trial", None) is not None:

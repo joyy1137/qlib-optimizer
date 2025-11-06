@@ -3,8 +3,9 @@ import pandas as pd
 import os
 import time
 import logging
+import concurrent.futures
 from datetime import datetime, timedelta, date
-from token_manager import get_valid_token
+# from token_manager import get_valid_token
 import tinyshare as ts
 import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -12,9 +13,15 @@ log = logging.getLogger(__name__)
 
 class QlibDataConverter:
    
-    def __init__(self, token, output_dir):
+    def __init__(self, output_dir):
            
-        self.pro = ts.pro_api("sBDH68895ILAFlFt8BZJAhxIBf36Gmi2rwv2TBe95dLpqtkys1I03xEI75dd3281")
+ 
+        # try:
+        self.pro = ts.pro_api("YvyuR14HT1dc75jp0DB7a1xf1di5L4s3ev3n5b0y0KOO4msoed2oUbvD4d852ee6")
+        # except Exception:
+        #
+        #     self.pro = None
+
         self.csv_output_dir = output_dir
 
         os.makedirs(self.csv_output_dir, exist_ok=True)
@@ -65,6 +72,65 @@ class QlibDataConverter:
         except Exception as e:
             logging.warning("获取 %s 后复权数据失败: {e}", ts_code)
             return None
+
+    def get_hfq_data_batch(self, ts_codes, start_date, end_date):
+        """
+        尝试批量拉取多个 ts_code 的后复权数据和复权因子。
+        优先使用一次 API 批量拉取（将 ts_code 拼接为逗号分隔字符串），如果 API 不支持则回退到并发逐只拉取。
+        返回合并后的 DataFrame，包含列 'ts_code','trade_date',...,'adj_factor'。
+        """
+        if not ts_codes:
+            return None
+
+        if self.pro is None:
+            logging.error("pro API 未初始化，无法拉取数据")
+            return None
+
+        try:
+            # 先尝试使用一次性批量请求
+            ts_param = ','.join(ts_codes)
+            df = self.pro.daily(ts_code=ts_param, start_date=start_date, end_date=end_date, adj='hfq')
+           
+            if df is None or df.empty:
+                raise ValueError("批量 daily 返回空")
+
+            try:
+                adj_df = self.pro.adj_factor(ts_code=ts_param, start_date=start_date, end_date=end_date)
+                if adj_df is not None and not adj_df.empty:
+                    df = df.merge(adj_df[['ts_code', 'trade_date', 'adj_factor']], on=['ts_code', 'trade_date'], how='left')
+                else:
+                    # 如果没有复权因子，补充默认 1.0
+                    logging.warning("批量获取 adj_factor 失败")
+         
+            except Exception:
+                logging.warning("批量获取 adj_factor 失败，继续使用 daily 数据并设置 factor=1.0")
+                
+
+            return df
+        except Exception as e:
+            logging.info("批量接口失败或不支持批量（%s），回退到并发逐只请求", e)
+
+    
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(ts_codes))) as executor:
+            futs = {executor.submit(self.get_hfq_data_directly, code, start_date, end_date): code for code in ts_codes}
+            for fut in concurrent.futures.as_completed(futs):
+                code = futs[fut]
+                try:
+                    res = fut.result()
+                    if res is not None and not res.empty:
+                        # 在单只结果中添加 ts_code 列（如果没有）
+                        if 'ts_code' not in res.columns:
+                            res['ts_code'] = code
+                        results.append(res)
+                except Exception:
+                    logging.exception("回退并发请求 %s 失败", code)
+
+        if not results:
+            return None
+
+        all_df = pd.concat(results, ignore_index=True)
+        return all_df
     
     
     def format_for_qlib(self, df, ts_code):
@@ -259,31 +325,95 @@ class QlibDataConverter:
         """
         # 获取股票列表
         stock_list = self.get_all_stocks(market)
-        
+
         success_count = 0
         failed_count = 0
-        
+
         for i in range(0, len(stock_list), batch_size):
             batch_stocks = stock_list[i:i+batch_size]
-            
+
             log.info(f"处理第 {i//batch_size + 1} 批，共 {len(batch_stocks)} 只股票")
-            
-            for stock_code in batch_stocks:
-                try:
-                    if self.process_stock(stock_code, start_date, end_date):
-                        success_count += 1
-                    else:
+
+            # 尝试使用批量接口一次性拉取本批次所有股票的数据
+            batch_df = None
+            try:
+                batch_df = self.get_hfq_data_batch(batch_stocks, start_date, end_date)
+            except Exception:
+                logging.exception("批量拉取失败，回退到逐只处理")
+
+            if batch_df is None or batch_df.empty:
+                # 如果批量接口不可用或返回空，退回到逐只处理（保持兼容）
+                for stock_code in batch_stocks:
+                    try:
+                        if self.process_stock(stock_code, start_date, end_date):
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                    except Exception:
+                        logging.exception("处理 %s 失败", stock_code)
                         failed_count += 1
-                except Exception as e:
-                    logging.exception("处理 %s 失败", stock_code)
-                    failed_count += 1
-                    continue
-            
+                        continue
+            else:
+                # 批量结果中可能包含多支股票，按 ts_code 切分并写入对应 CSV
+                # 确保列名包含 ts_code 与 trade_date
+                if 'ts_code' not in batch_df.columns:
+                    logging.error("批量返回数据缺少 ts_code 列，回退到逐只处理")
+                    for stock_code in batch_stocks:
+                        try:
+                            if self.process_stock(stock_code, start_date, end_date):
+                                success_count += 1
+                            else:
+                                failed_count += 1
+                        except Exception:
+                            logging.exception("处理 %s 失败", stock_code)
+                            failed_count += 1
+                            continue
+                else:
+                    # 统一处理每只股票在 batch_df 中的分片
+                    for stock_code in batch_stocks:
+                        try:
+                            sub_df = batch_df[batch_df['ts_code'] == stock_code]
+                            if sub_df is None or sub_df.empty:
+                                logging.info("批量数据中 %s 无数据，跳过", stock_code)
+                                failed_count += 1
+                                continue
+
+                            # 子 DataFrame 里 trade_date 已存在，重命名/格式化并写入 CSV（复用 format_for_qlib）
+                            df_qlib = self.format_for_qlib(sub_df, stock_code)
+                            if df_qlib is None or df_qlib.empty:
+                                failed_count += 1
+                                continue
+
+                            csv_path = os.path.join(self.csv_output_dir, f"{stock_code}.csv")
+                            if os.path.exists(csv_path):
+                                try:
+                                    existing = pd.read_csv(csv_path, parse_dates=['date'])
+                                    combined = pd.concat([existing, df_qlib], ignore_index=True)
+                                    combined['date'] = pd.to_datetime(combined['date']).dt.strftime('%Y-%m-%d')
+                                    combined.drop_duplicates(subset=['date'], keep='last', inplace=True)
+                                    combined.sort_values('date', inplace=True)
+                                    combined.to_csv(csv_path, index=False)
+                                    success_count += 1
+                                except Exception as e:
+                                    logging.error("写入CSV失败 (%s): %s", csv_path, e)
+                                    failed_count += 1
+                            else:
+                                try:
+                                    df_qlib.sort_values('date', inplace=True)
+                                    df_qlib.to_csv(csv_path, index=False)
+                                    success_count += 1
+                                except Exception as e:
+                                    logging.error("写入CSV失败 (%s): %s", csv_path, e)
+                                    failed_count += 1
+                        except Exception:
+                            logging.exception("处理批量中 %s 失败", stock_code)
+                            failed_count += 1
+
             # 批次间暂停，避免API限制
             if i + batch_size < len(stock_list):
                 logging.info("批次间暂停0.2秒...")
                 time.sleep(0.2)
-        
+
         logging.info("处理完成: 成功 %d 只，失败 %d 只", success_count, failed_count)
     
      
@@ -292,7 +422,7 @@ class QlibDataConverter:
     
 
 def main():
-    TUSHARE_TOKEN = get_valid_token()
+   
     cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
 
     with open(cfg_path, 'r', encoding='utf-8') as f:
@@ -300,7 +430,7 @@ def main():
 
     output_dir = cfg['csv_output_dir']
 
-    converter = QlibDataConverter(TUSHARE_TOKEN, output_dir)
+    converter = QlibDataConverter(output_dir)
     
     market = 'ALL'
     start_date = '20150101'

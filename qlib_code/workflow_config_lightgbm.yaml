@@ -5,9 +5,9 @@ market: &market all
 benchmark: &benchmark 000300.sh
 data_handler_config: &data_handler_config
     start_time: 2015-01-01
-    end_time: 2025-10-22
+    end_time: 2025-11-01
     fit_start_time: 2015-01-01
-    fit_end_time: 2019-08-31
+    fit_end_time: 2025-10-28
     instruments: *market
     
 port_analysis_config: &port_analysis_config
@@ -20,8 +20,8 @@ port_analysis_config: &port_analysis_config
             n_drop: 5
             risk_degree: 1.0
     backtest:
-        start_time: 2020-09-01
-        end_time: 2025-10-22
+        start_time: 2025-10-30
+        end_time: 2025-11-01
         account: 100000000
         benchmark: *benchmark
         exchange_kwargs:
@@ -37,19 +37,18 @@ task:
         module_path: qlib.contrib.model.gbdt
         kwargs:
             loss: mse
-            colsample_bytree: 0.9058152731136294
-            learning_rate: 0.045756879897871805
-            subsample: 0.18157818132780507
-            lambda_l1: 0.00022346972262632592
-            lambda_l2: 1001.8237427610699
-            num_leaves: 685
-            feature_fraction: 0.4183517359113321
-            bagging_fraction: 0.6173858959530764
-            bagging_freq: 5
-            min_data_in_leaf: 27
-            min_child_samples: 47
-            max_depth: 8
-            num_threads: 20
+            colsample_bytree: 0.6609785798727253
+            learning_rate: 0.41407141856342733
+            subsample: 0.1724475929360629
+            lambda_l1: 1.300591783823068
+            lambda_l2: 126.11558673433876
+            num_leaves: 827
+            feature_fraction: 0.8707909338344939
+            bagging_fraction: 0.999947949742483
+            bagging_freq: 2
+            min_data_in_leaf: 3
+            min_child_samples: 45
+            max_depth: 10
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
@@ -59,9 +58,9 @@ task:
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
-                train: [2015-01-01, 2019-08-31]
-                valid: [2019-09-01, 2020-08-31]
-                test: [2020-09-01, 2025-10-22]
+                train: [2015-01-01, 2025-10-28]
+                valid: [2025-10-28, 2025-10-30]
+                test: [2025-10-30, 2025-11-01]
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
