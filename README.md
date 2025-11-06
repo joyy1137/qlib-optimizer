@@ -33,8 +33,6 @@
 ```powershell
 # 创建并激活 conda 环境（示例）
 conda create -n qlib_env python=3.9 -y; conda activate qlib_env
-# 或使用 venv
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
 ```
 
 3. 安装 Python 依赖：
@@ -55,42 +53,12 @@ pip install -r qlib_code\requirements.txt
 
   推荐的 PowerShell 快速运行示例（假设当前目录为仓库根目录，并已激活虚拟环境）：
 
-  # 运行日常更新与预测
-  python .\qlib_code\run_daily_update.py
+## 运行日常更新与预测
   ```
-
-  运行后会触发数据更新，并执行模型预测流程，最后在 `config/paths.yaml` 指定的 `prediction_output_dir` 中产出 `prediction_YYYYMMDD.csv`，同时将结果写入数据库（通过 `MySQLImporter`）。
-
-- 仅运行预测（可选）
-
-  如果你只想执行预测（不执行其他日常数据更新），可以直接运行 `update_new.py`：
-
-  ```powershell
-  # 可选：确保 global_tools 可导入
-  $env:GLOBAL_TOOLSFUNC_test = 'C:\path\to\your\tools'
-  python .\qlib_code\update_new.py
+  python .\main.py
   ```
-
-  常见问题：
-  - 如果脚本找不到 `global_tools`，请确认 `GLOBAL_TOOLSFUNC_test` 指向包含 `global_tools.py` 的目录。
-  - 若模型无法加载（pickle 错误），请确认 `config/paths.yaml` 中 `model_path` 指向兼容当前环境的模型文件。
-
-
-## 运行 Matlab 优化与回测
-
-- 在 `Optimizer_matlab/` 文件夹中有若干 Matlab 脚本：
-  - 在 MATLAB 环境中打开并运行 `run_optimizer.m` 或 `batch_run_optimizer.m` 来依次进行优化/回测。
-
-
-## 输出
-
-- 预测 CSV：由 `update_new.py` 输出到 `prediction_output_dir`（见 `paths.yaml`），文件名形如 `prediction_YYYYMMDD.csv`。
-- 数据库：预测会写入到指定表（通过 `MySQLImporter.df_to_mysql`），表结构在脚本中有示例 schema（`valuation_date`, `code`, `final_score`, `score_name`, `update_time`）。
-
-## 常见问题与排查建议
-
-- 模型加载失败（pickle）：请确认 `paths.yaml` 中 `model_path` 指向一个存在且兼容当前 Python 环境与库版本的 pickle 文件。
-- Qlib provider 连接失败：确认 `provider_uri` 在 `paths.yaml` 配置正确并且数据已初始化（qlib.init 成功）。
-- `global_tools` 导入失败：检查 `GLOBAL_TOOLSFUNC_test` 环境变量是否正确设置，且路径中包含 `global_tools.py`。
-- 数据库写入失败：检查 `db.yaml` 配置、数据库是否允许外部连接、目标表权限与字符集（MySQL）等。
+  - 运行后会触发数据更新，执行模型预测流程，并且使用优化器得到最终权重。最后在 `config/paths.yaml` 指定的 `prediction_output_dir` 中产出预测得到的score `prediction_YYYYMMDD.csv`，同时根据`config/db.yaml`将结果写入数据库 `database.table_name `。并且会导出优化后的权重数据写入数据库 `database2.table_name2 `中。
+  - 默认优化生成最新日期的权重。如需优化得到历史数据权重，需要将`.\Optimizer_matlab\merge_portfolio_dataframe.m`, `.\Optimizer_matlab\data_preparation.m`以及`.\Optimizer_matlab\batch_run_optimizer.m`中使用`ConfigReaderToday`的地方改成`ConfigReader`，并且将`.\Optimizer_matlab\config\config_db.m`中的`db_config.score_source = 'csv'`修改成`db_config.score_source = 'db'`
+  
+  - 如需生成特定日期的权重，可以修改上述使用`ConfigReaderToday`的地方，修改为`ConfigReaderToday(specifiedDate=指定日期)`。或者，在使用`ConfigReader`的情况下，直接修改`.\Optimizer_matlab\config\opt_project_config.m`中portfolio的开始和结束日期。
 
