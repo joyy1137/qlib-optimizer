@@ -5,9 +5,7 @@
 - 从 Tushare 拉取日线（后复权）与指数数据并保存为 CSV（`tushare2csv.py`）。
 - 将 CSV 转换为 Qlib 二进制数据（通过 qlib 的 `dump_bin.py`，由 `run_daily_update.py` 调用）。
 - 加载训练好的模型并对单日进行预测（`update_new.py`）。
-- 风险模型数据转换（`build_riskmodel.py`）。
 - 超参数搜索示例（`hyperparameter_lgbm.py` 使用 Optuna）。
-- 可视化与导出工具（`save_plot.py`, `export_figures_to_pdf.py`, `export_weights.py` 等）。
 
 目录结构（工作区顶层文件示例）：
 
@@ -32,11 +30,7 @@ conda create -n qlib_env python=3.12 -y; conda activate qlib_env
 python -m pip install -r requirements.txt
 ```
 
-3. 配置 Tushare token 与 Qlib 数据目录：
-   - 在 `tushare2csv.py` 中 `TUSHARE_TOKEN` 默认示例已填写，请替换为你自己的 token。
-   - 确保 `run_daily_update.py` 中默认的 `--data_csv_dir` 与 `--qlib_bin_dir` 指向存在的路径，或在运行时通过参数覆盖。
-
-4. 运行日常流水线（示例）：
+3. 运行日常流水线（示例）：
 
 ```powershell
 python run_daily_update.py --date 2025-10-27 (默认预测当日数据)
@@ -44,4 +38,22 @@ python run_daily_update.py --date 2025-10-27 (默认预测当日数据)
 
 该命令会：拉取最新 CSV -> 调用 qlib 的 `dump_bin.py`（需要先git clone https://github.com/microsoft/qlib.git）-> 运行 `update_new.py` 生成预测文件。
 
+## 模型训练（先调参再运行 qrun）
+
+1. 首先在第一个终端运行以下代码去创建一个数据库，并且记录调参过程中的数据：
+```
+optuna create-study --study LGBM_158 --storage sqlite:///db.sqlite3
+optuna-dashboard --port 5000 --host 0.0.0.0 sqlite:///db.sqlite3
+```
+2. 在第二个终端中运行以下调参脚本：
+```
+python hyperparameter_158.py
+```
+调参完成后会打印出最佳参数，或去数据库查看
+
+3. 传入上一步获得的超参数到模型配置文件，运行
+```
+qrun workflow_config_lightgbm.yaml
+```
+需要注意切换到配置文件所在路径
 
