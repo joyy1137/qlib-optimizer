@@ -5,7 +5,6 @@ import time
 import logging
 import concurrent.futures
 from datetime import datetime, timedelta, date
-# from token_manager import get_valid_token
 import tinyshare as ts
 import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')

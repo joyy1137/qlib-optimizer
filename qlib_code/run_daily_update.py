@@ -118,12 +118,12 @@ def main():
         sys.stderr = original_stderr
         raise
 
-    tushare_script = WORKDIR / "tushare2csv.py"
-    if not tushare_script.exists():
-        raise SystemExit(f"Missing script: {tushare_script}")
+    sql2csv_script = WORKDIR / "sql2csv.py"
+    if not sql2csv_script.exists():
+        raise SystemExit(f"Missing script: {sql2csv_script}")
 
     print("获取最新数据...")
-    run_cmd([py, str(tushare_script)])
+    run_cmd([py, str(sql2csv_script)])
 
     dump_script = Path(args.dump_script)
     # If the provided dump_script doesn't exist, try qlib_workdir/scripts/dump_bin.py

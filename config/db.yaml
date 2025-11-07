@@ -9,3 +9,6 @@ user: "yfr"
 password: "Abcd1234#"
 host: "rm-cn-fhh4gzo9900083vo.rwlb.rds.aliyuncs.com"
 port: 3306
+
+host2: "rm-bp1o6we7s3o1h76x1to.mysql.rds.aliyuncs.com"
+database3: "data_prepared_new"
