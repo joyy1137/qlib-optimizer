@@ -1,10 +1,11 @@
+clear; clc; close all;
 currentFile = mfilename('fullpath');
 currentDir = fileparts(currentFile);
 try
 	pyScript = fullfile(currentDir, 'qlib_code', 'run_daily_update.py');
 	pythonExe = 'C:\Users\TestUser\.conda\envs\qlib_env\python.exe'; 
-	cmd = sprintf('"%s" "%s"', pythonExe, pyScript);
-	[status, cmdout] = system(cmd);
+	cmd = sprintf('"%s" -u "%s"', pythonExe, pyScript);
+	[status, cmdout] = system(cmd, '-echo');
     if status ~= 0
         warning('Running python script failed (status=%d). Output:\n%s', status, cmdout);
     end

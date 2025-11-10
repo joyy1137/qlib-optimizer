@@ -4,7 +4,7 @@ qlib_bin_dir: "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"
 qlib_workdir: "E:\\qlib" 
 
 # 训练好的模型存放路径
-model_path: "E:\\output\\mlruns\\505608931795866282\\7d35e7a5b04149f690fd8e0cf031f84d\\artifacts\\trained_model"
+model_path: "E:\\qlib-optimizer\\qlib_code\\mlruns\\791798094765178125\\21ab91807eff4e61bee33331ff1c4411\\artifacts\\trained_model"
 
 # 预测出的score文件存放路径
 prediction_output_dir: "E:\\qlib_output"
