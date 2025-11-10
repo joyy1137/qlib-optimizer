@@ -118,12 +118,12 @@ def main():
         sys.stderr = original_stderr
         raise
 
-    sql2csv_script = WORKDIR / "sql2csv.py"
-    if not sql2csv_script.exists():
-        raise SystemExit(f"Missing script: {sql2csv_script}")
+    update_latest_days_script = WORKDIR / "update_latest_days.py"
+    if not update_latest_days_script.exists():
+        raise SystemExit(f"Missing script: {update_latest_days_script}")
 
     print("获取最新数据...")
-    run_cmd([py, str(sql2csv_script)])
+    run_cmd([py, str(update_latest_days_script)])
 
     dump_script = Path(args.dump_script)
     # If the provided dump_script doesn't exist, try qlib_workdir/scripts/dump_bin.py

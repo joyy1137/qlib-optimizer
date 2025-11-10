@@ -82,9 +82,9 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
     else
 
         today_dt = datetime('today');
-
        
         [is_trading, actual_date] = ValidateWorkingDay(today_dt);
+        disp("aaaaaaa")
       
         now_dt = datetime('now');
         disp(now_dt);

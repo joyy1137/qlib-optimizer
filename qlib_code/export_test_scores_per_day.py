@@ -20,7 +20,7 @@ from qlib.data import D
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--model-path", default=r"E:\qlib_code\mlruns\505608931795866282\7d35e7a5b04149f690fd8e0cf031f84d\artifacts\trained_model")
+    p.add_argument("--model-path", default=r"E:\\qlib-optimizer\\qlib_code\\mlruns\\791798094765178125\\21ab91807eff4e61bee33331ff1c4411\\artifacts\\trained_model")
     p.add_argument("--provider-uri", default=r"E:\\qlib_data\\tushare_qlib_data\\qlib_bin", help="Qlib provider uri")
     p.add_argument("--start-date", default="2020-09-01", help="Test start date YYYY-MM-DD")
     p.add_argument("--end-date", default="2025-10-22", help="Test end date YYYY-MM-DD")
@@ -91,7 +91,8 @@ def main():
     df = pd.DataFrame({
         "datetime": pd.to_datetime(datetimes),
         "code": instruments_idx,
-        "score": pred_values,
+        "final_score": pred_values,
+        "score_name": "vp08"
     })
 
     df["date_str"] = df["datetime"].dt.strftime("%Y%m%d")
@@ -102,7 +103,7 @@ def main():
     for date_str, g in grouped:
         out_path = os.path.join(args.output_dir, f"prediction_{date_str}.csv")
         # Only keep code and score columns
-        g_out = g[["code", "score"]].sort_values("score", ascending=False)
+        g_out = g[["code", "final_score", "score_name"]].sort_values("final_score", ascending=False)
         g_out.to_csv(out_path, index=False)
         count += 1
 

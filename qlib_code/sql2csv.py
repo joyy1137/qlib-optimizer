@@ -50,7 +50,7 @@ class QlibDataConverter:
                 SELECT valuation_date, code, open, high, low, close, volume, amt, adjfactor_jy 
                 FROM data_stock 
                 WHERE code = :code 
-                AND trade_date BETWEEN :start_date AND :end_date
+                AND valuation_date BETWEEN :start_date AND :end_date
                 ORDER BY valuation_date
             """)
             
@@ -60,9 +60,9 @@ class QlibDataConverter:
             if df is not None and not df.empty:
                 log.info(f"从数据库获取 {code} 数据成功，共 {len(df)} 条记录")
                 return df
-            else:
-                log.info(f"股票 {code} 在数据库中无数据")
-                return None
+            # else:
+            #     log.info(f"股票 {code} 在数据库中无数据")
+            #     return None
                 
         except Exception as e:
             log.error(f"从数据库获取 {code} 数据失败: {e}")
@@ -154,42 +154,69 @@ class QlibDataConverter:
         
         df = df[required_columns]
         return df
-
-    def process_stock(self, code, start_date='20200101', end_date='20250920'):
+    
+    def process_stock(self, code, start_date=None, end_date=None):
         """
-        处理单只股票
+        处理单只股票：只获取最近数据，如果已存在相同日期则覆盖
         """
         csv_path = os.path.join(self.csv_output_dir, f"{code}.csv")
-        
-        # 检查现有数据，实现增量更新
-        if os.path.exists(csv_path):
-            try:
-                existing = pd.read_csv(csv_path, parse_dates=['date'])
-                if not existing.empty:
-                    last_date = existing['date'].max().date()
-                    end_dt = datetime.strptime(end_date, '%Y%m%d').date()
-                    if last_date >= end_dt:
-                        log.info(f"{code} 数据已是最新，跳过")
-                        return True
-                   
-                    new_start = last_date + timedelta(days=1)
-                    start_date = new_start.strftime('%Y%m%d')
-                    log.info(f"{code} 存在历史数据，从 {start_date} 开始提取")
-            except Exception as e:
-                log.warning(f"读取现有CSV失败，执行全量拉取: {e}")
+
+
+        today = date.today()
+        two_days_ago = today - timedelta(days=7)
+
+        start_date = two_days_ago.strftime('%Y%m%d')
+        end_date = today.strftime('%Y%m%d')
 
         # 从数据库获取数据
         df = self.get_hfq_data_from_sql(code, start_date, end_date)
         if df is None or df.empty:
             return False
-        
+
         df_qlib = self.format_for_qlib(df, code)
         if df_qlib is None:
             return False
-            
-        # 保存数据
+
         return self._save_to_csv(df_qlib, csv_path)
-    
+
+
+    # def process_stock(self, code, start_date='20200101', end_date='20250920'):
+    #     """
+    #     处理单只股票
+    #     """
+    #     csv_path = os.path.join(self.csv_output_dir, f"{code}.csv")
+        
+    #     # 检查现有数据，实现增量更新
+    #     if os.path.exists(csv_path):
+    #         try:
+    #             existing = pd.read_csv(csv_path, parse_dates=['date'])
+    #             if not existing.empty:
+    #                 last_date = existing['date'].max().date()
+    #                 end_dt = datetime.strptime(end_date, '%Y%m%d').date()
+    #                 if last_date >= end_dt:
+    #                     log.info(f"{code} 数据已是最新，跳过")
+    #                     return True
+                   
+    #                 new_start = last_date + timedelta(days=1)
+    #                 start_date = new_start.strftime('%Y%m%d')
+    #                 log.info(f"{code} 存在历史数据，从 {start_date} 开始提取")
+    #         except Exception as e:
+    #             log.warning(f"读取现有CSV失败，执行全量拉取: {e}")
+
+    #     # 从数据库获取数据
+    #     df = self.get_hfq_data_from_sql(code, start_date, end_date)
+    #     if df is None or df.empty:
+    #         return False
+        
+    #     df_qlib = self.format_for_qlib(df, code)
+    #     if df_qlib is None:
+    #         return False
+            
+    #     # 保存数据
+    #     return self._save_to_csv(df_qlib, csv_path)
+     
+
+
     def _save_to_csv(self, df, csv_path):
         """
         保存数据到CSV文件
@@ -236,9 +263,9 @@ class QlibDataConverter:
             df = pd.read_sql(query, self.engine, 
                            params={'index_code': index_code, 'start_date': start_date_str, 'end_date': end_date_str})
             
-            if df is None or df.empty:
-                log.warning(f"指数 {index_code} 无数据")
-                return None
+            # if df is None or df.empty:
+            #     log.warning(f"指数 {index_code} 无数据")
+            #     return None
 
             # 指数数据没有复权因子，设为1.0
             df['factor'] = 1.0
@@ -374,7 +401,7 @@ class QlibDataConverter:
                     try:
                         sub_df = batch_df[batch_df['code'] == stock_code]
                         if sub_df.empty:
-                            log.info(f"批量数据中 {stock_code} 无数据")
+                            # log.info(f"批量数据中 {stock_code} 无数据")
                             failed_count += 1
                             continue
 
@@ -418,7 +445,9 @@ def main():
     end_date = date.today().strftime('%Y%m%d') 
     batch_size = 1000
 
-    converter.process_all_stocks(market=market, start_date=start_date, end_date=end_date, batch_size=batch_size)
+    # converter.process_all_stocks(market=market, start_date=start_date, end_date=end_date, batch_size=batch_size)
+    converter.process_all_stocks(market=market, batch_size=batch_size)
+
     converter.process_all_indices(market=market, start_date=start_date, end_date=end_date)
     logging.info("处理完成")
     

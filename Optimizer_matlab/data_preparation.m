@@ -26,6 +26,7 @@ function data_preparation(option)
         switch opt_val
             case 'daily'
                 config_path = fullfile(script_dir, 'config', 'opt_project_config_daily.xlsx');
+                disp("aaaaa")
                 [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReaderToday(config_path);
                 fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
             case 'history'
@@ -40,7 +41,9 @@ function data_preparation(option)
         end
     catch ME
         warning(ME.identifier, '配置文件读取失败: %s，尝试遍历输出目录', ME.message);
+        % 如果配置读取失败，防御性地初始化返回值并退出，避免后续对未定义变量的访问导致错误
         
+        return;
     end
     
 

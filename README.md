@@ -80,10 +80,12 @@ python sql2csv.py
 示例：在仓库根目录并激活虚拟环境后运行（默认预测当日数据）：
 
 ```powershell
-matlab .\main.m
+matlab .\main_daily.m
 ```
-可以通过修改脚本里面run_optimizer("daily");的参数为'daily'或者'history'得到需要的权重。
-
+或者
+```powershell
+matlab .\main_history.m
+```
 或直接指定日期生成分数，运行 `run_daily_update.py`：
 
 ```powershell
