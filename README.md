@@ -70,7 +70,7 @@ python sql2csv.py
 ```
 准备qlib需要的数据，随后运行
 ```powershell
- python scripts/dump_bin.py dump_all--csv_path "csv_output_dir"--qlib_dir "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"--include_fields open,close,high,low,volume,factor,money
+ python scripts/dump_bin.py dump_all--csv_path "csv_output_dir"--qlib_dir "qlib_bin_dir"--include_fields open,close,high,low,volume,factor,money
 ```
 得到模型训练所需要的数据。
 
