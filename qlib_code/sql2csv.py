@@ -337,7 +337,7 @@ class QlibDataConverter:
             log.error(f"获取股票列表失败: {e}")
             return []
 
-    def process_all_stocks(self, market='ALL', start_date='20200101', end_date='20250920', batch_size=50):
+    def process_all_stocks(self, market='ALL', start_date='20200101', end_date='20250920', batch_size=10):
         """
         处理全部股票
         """
@@ -351,6 +351,7 @@ class QlibDataConverter:
 
         for i in range(0, len(stock_list), batch_size):
             batch_stocks = stock_list[i:i+batch_size]
+           
             log.info(f"处理第 {i//batch_size + 1} 批，共 {len(batch_stocks)} 只股票")
 
             # 尝试批量获取
@@ -415,7 +416,7 @@ def main():
     market = 'ALL'
     start_date = '20150101'
     end_date = date.today().strftime('%Y%m%d') 
-    batch_size = 200
+    batch_size = 1000
 
     converter.process_all_stocks(market=market, start_date=start_date, end_date=end_date, batch_size=batch_size)
     converter.process_all_indices(market=market, start_date=start_date, end_date=end_date)

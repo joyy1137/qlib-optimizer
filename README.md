@@ -64,14 +64,25 @@ python -m pip install -r requirements.txt
 git clone https://github.com/microsoft/qlib.git
 # 然后确保在 PATH 或脚本中能找到 qlib 的工具
 ```
+4) 单独运行
+```powershell
+python sql2csv.py
+```
+准备qlib需要的数据，随后运行
+```powershell
+ python scripts/dump_bin.py dump_all--csv_path "csv_output_dir"--qlib_dir "E:\\qlib_data\\tushare_qlib_data\\qlib_bin"--include_fields open,close,high,low,volume,factor,money
+```
+得到模型训练所需要的数据。
+
 
 ## 运行日常预测流水线
 
 示例：在仓库根目录并激活虚拟环境后运行（默认预测当日数据）：
 
 ```powershell
-python .\main.py
+matlab .\main.m
 ```
+可以通过修改脚本里面run_optimizer("daily");的参数为'daily'或者'history'得到需要的权重。
 
 或直接指定日期生成分数，运行 `run_daily_update.py`：
 
@@ -88,19 +99,13 @@ python .\qlib_code\run_daily_update.py --date 2025-10-27
 
 输出位置：`config/paths.yaml` 中的 `prediction_output_dir`（默认为仓库内某目录，请检查配置）。
 
-## 使用 Matlab 优化与回测（可选）
+## 使用 Matlab 优化（可选）
 
 `Optimizer_matlab/` 内包含基于预测分数的优化与回测脚本。典型流程：
 
 - 将生成的 `prediction_YYYYMMDD.csv` 提供给 Matlab 脚本作为 score 源（或从数据库中读取）；
 - 运行 ``run_optimizer.m` 来生成组合权重；
 
-注意：默认 Matlab 的一些脚本使用 `ConfigReaderToday`（将只处理最新日期）。如果需要生成历史日期的权重，需：
-
-- 将 `Optimizer_matlab/merge_portfolio_dataframe.m`, `data_preparation.m`, `batch_run_optimizer.m` 中的 `ConfigReaderToday` 改为 `ConfigReader`；
-- 在 `Optimizer_matlab/config/config_db.m` 中将 `db_config.score_source = 'csv'` 改为 `db`（如果你希望从数据库读取 score）。
-
-也可以使用 `ConfigReaderToday(specifiedDate=...)` 的方式指定具体日期运行。
 
 ## 模型训练与超参数调优（Optuna + qrun）
 

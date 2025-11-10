@@ -1,4 +1,4 @@
-function batch_run_optimizer()  
+function batch_run_optimizer(option)  
     % 批量调用 optimizer_matlab_func_v2 的脚本
     % 根据配置文件中的 portfolio_info 批量优化多个组合
     % clear; clc; close all;
@@ -11,11 +11,35 @@ function batch_run_optimizer()
     addpath(fullfile(script_dir, 'config')); 
     
     % 读取配置文件
-    config_path = fullfile(script_dir, 'config', 'opt_project_config.xlsx');
     
+
+    if nargin < 1 || isempty(option)
+        option = 'daily';
+    end
+
     try
-        [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
-    fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+        % 规范化 option 为小写字符串
+        if isstring(option) || ischar(option)
+            opt_val = char(lower(string(option)));
+        else
+            opt_val = 'daily';
+        end
+
+        switch opt_val
+            case 'daily'
+                config_path = fullfile(script_dir, 'config', 'opt_project_config_daily.xlsx');
+                [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+            case 'history'
+                config_path = fullfile(script_dir, 'config', 'opt_project_config_history.xlsx');
+                [portfolio_info, ~, ~] = ConfigReader(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+            otherwise
+                config_path = fullfile(script_dir, 'config', 'opt_project_config_daily.xlsx');
+                warning('未知的 option 值: %s，默认使用daily数据', opt_val);
+                [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+        end
     catch ME
         warning(ME.identifier, '配置文件读取失败: %s，尝试遍历输出目录', ME.message);
         % 如果配置文件读取失败，回退到原来的目录遍历方式

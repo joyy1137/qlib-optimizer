@@ -1,4 +1,4 @@
-function df_result = merge_portfolio_dataframe(output_path)
+function df_result = merge_portfolio_dataframe(output_path, option)
 % merge_portfolio_dataframe - 从配置文件读取投资组合信息，合并优化后的数据并导出为CSV
 %
 % 用法:
@@ -35,16 +35,39 @@ function df_result = merge_portfolio_dataframe(output_path)
         end
     end
     log_file = fullfile(log_dir, 'weight_optimizer.log');
-    config_path = fullfile(script_dir,'..', 'config', 'opt_project_config.xlsx');
     
     % 读取配置文件获取投资组合基础信息
-    fprintf_log('正在读取配置文件: %s\n', config_path);
+    fprintf_log('正在读取配置文件: ');
+    if nargin < 2
+        option = 'daily';
+    end
     try
-        [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
-    fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+        % 规范化 option 为小写字符串
+        if isstring(option) || ischar(option)
+            opt_val = char(lower(string(option)));
+        else
+            opt_val = 'daily';
+        end
+
+        switch opt_val
+            case 'daily'
+                config_path = fullfile(script_dir,'..', 'config', 'opt_project_config_daily.xlsx');
+                [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+            case 'history'
+                config_path = fullfile(script_dir,'..', 'config', 'opt_project_config_history.xlsx');
+                [portfolio_info, ~, ~] = ConfigReader(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+            otherwise
+                warning('未知的 option 值: %s，默认使用daily数据', opt_val);
+                config_path = fullfile(script_dir,'..', 'config', 'opt_project_config_daily.xlsx');
+                [portfolio_info, ~, ~] = ConfigReaderToday(config_path);
+                fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
+        end
     catch ME
         error('读取配置文件失败: %s', ME.message);
     end
+  
     
     % 提取投资组合信息
     portfolio_names = portfolio_info.portfolio_name;

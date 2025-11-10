@@ -1,4 +1,4 @@
-function run_optimizer()
+function run_optimizer(option)
 
 	currentFile = mfilename('fullpath');
 	currentDir = fileparts(currentFile);
@@ -21,8 +21,8 @@ function run_optimizer()
 	javaaddpath("E:\qlib-optimizer\Optimizer_matlab\mysql-connector-j-9.3.0.jar")
 	addpath(genpath('E:\YAMLMatlab_0.4.3'));
 	savepath;
-	data_preparation();
-	batch_run_optimizer();
+	data_preparation(option);
+	batch_run_optimizer(option);
 
 	path_config = fullfile(currentDir, '..','config', 'paths.yaml');
 
@@ -31,7 +31,7 @@ function run_optimizer()
 	addpath(fullfile(currentDir, 'utils'));
 	addpath(fullfile(currentDir, 'tools'));
 
-	merge_portfolio_dataframe(path.temp_dir);
+	merge_portfolio_dataframe(path.temp_dir,option);
 
 
 	try

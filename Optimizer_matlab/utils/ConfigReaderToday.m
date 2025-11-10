@@ -25,7 +25,41 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
     end
 
 
-    [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReader(config_path);
+    try
+        portfolio_info = readtable(config_path, 'Sheet', 'portfolio_info');
+    catch ME
+        error('Failed to read portfolio_info sheet from %s: %s', config_path, ME.message);
+    end
+
+    try
+        opts = detectImportOptions(config_path, 'Sheet', 'portfolio_constraint');
+        
+        opts = setvartype(opts, opts.VariableNames, 'char');
+        portfolio_constraint = readtable(config_path, opts);
+    catch
+        
+        portfolio_constraint = table();
+    end
+
+    try
+        factor_constraint = readtable(config_path, 'Sheet', 'factor_constraint');
+    catch
+        factor_constraint = table();
+    end
+
+    fprintf('成功读取配置文件 (ConfigReader 内联实现):\n');
+    if exist('portfolio_info', 'var') && height(portfolio_info) > 0
+        fprintf('  投资组合数量: %d\n', height(portfolio_info));
+        fprintf('  投资组合列表:\n');
+        for i = 1:height(portfolio_info)
+            if ismember('portfolio_name', portfolio_info.Properties.VariableNames)
+                pname = portfolio_info.portfolio_name{i};
+            else
+                pname = sprintf('portfolio_%d', i);
+            end
+            fprintf('    %d. %s\n', i, pname);
+        end
+    end
 
    
     if isempty(specifiedDate) && ~useToday
@@ -59,23 +93,19 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
         elseif ~is_trading
             last = datetime(actual_date, 'InputFormat', 'yyyy-MM-dd');
             override_dt = NextWorkdayCalculator(last);
-
         else
             override_dt = today_dt;
-
         end
-        
     end
 
-    % 只有在确实存在这两列时才尝试覆盖
     if ismember('start_date', portfolio_info.Properties.VariableNames)
         try
-            % 优先尝试就地替换以保留列类型
             portfolio_info.start_date(:) = repmat(override_dt, height(portfolio_info), 1);
         catch
-            % 如果替换失败（例如列是 cell），则新建 datetime 列覆盖
             portfolio_info.start_date = repmat(override_dt, height(portfolio_info), 1);
         end
+    else
+        portfolio_info.start_date = repmat(override_dt, height(portfolio_info), 1);
     end
 
     if ismember('end_date', portfolio_info.Properties.VariableNames)
@@ -84,7 +114,8 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
         catch
             portfolio_info.end_date = repmat(override_dt, height(portfolio_info), 1);
         end
+    else
+        portfolio_info.end_date = repmat(override_dt, height(portfolio_info), 1);
     end
 
-    % 在此处不对调用方做其他副作用（不写回文件，不改全局状态）
 end

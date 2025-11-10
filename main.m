@@ -19,4 +19,5 @@ catch ME
 	end
 	warning(id, 'Failed to launch Python importer: %s', ME.message);
 end
-run_optimizer();
+% 这里的参数为 "daily" 或 "history"
+run_optimizer("daily");
