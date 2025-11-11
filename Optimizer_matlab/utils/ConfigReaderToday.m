@@ -60,10 +60,8 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
             last = datetime(actual_date, 'InputFormat', 'yyyy-MM-dd');
             override_dt = NextWorkdayCalculator(last);
         else
-            override_dt = LastWorkdayCalculator(today_dt);
-            disp(today_dt);
-            disp(override_dt);
-
+            override_dt = today_dt;
+            
         end
         
     end

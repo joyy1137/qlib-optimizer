@@ -310,8 +310,13 @@ function df_result = merge_portfolio_dataframe(output_path, option)
                     portfolio_name_clean = strrep(current_portfolio, '-', '_');
                     portfolio_name_clean = strrep(portfolio_name_clean, ' ', '_');
                     date_str_clean = strrep(current_date, '-', '');
-                    outFile = fullfile(output_path, portfolio_name_clean,[portfolio_name_clean '_' date_str_clean '.csv']);
-                    
+                    folder_path = fullfile(output_path, portfolio_name_clean);
+                    if ~exist(folder_path, 'dir')
+                        mkdir(folder_path);
+                    end
+
+                    outFile = fullfile(folder_path, [portfolio_name_clean '_' date_str_clean '.csv']);
+
                     try
                         writetable(df_export, outFile);
                         fprintf_log('导出: %s\n', outFile);
