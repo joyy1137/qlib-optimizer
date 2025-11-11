@@ -26,7 +26,6 @@ function data_preparation(option)
         switch opt_val
             case 'daily'
                 config_path = fullfile(script_dir, 'config', 'opt_project_config_daily.xlsx');
-                disp("aaaaa")
                 [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReaderToday(config_path);
                 fprintf_log('从配置文件读取到 %d 个投资组合\n', height(portfolio_info));
             case 'history'

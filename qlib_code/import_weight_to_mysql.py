@@ -24,7 +24,7 @@ def discover_csv_files(a_folder: str):
     p = Path(a_folder)
     if not p.exists():
         raise FileNotFoundError(f"a folder not found: {a_folder}")
-    return sorted([str(x) for x in p.glob('*.csv') if x.is_file()])
+    return sorted([str(x) for x in p.rglob('*.csv') if x.is_file()])
 
 
 def read_and_normalize(csv_path: str):

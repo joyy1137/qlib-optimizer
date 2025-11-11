@@ -25,41 +25,7 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
     end
 
 
-    try
-        portfolio_info = readtable(config_path, 'Sheet', 'portfolio_info');
-    catch ME
-        error('Failed to read portfolio_info sheet from %s: %s', config_path, ME.message);
-    end
-
-    try
-        opts = detectImportOptions(config_path, 'Sheet', 'portfolio_constraint');
-        
-        opts = setvartype(opts, opts.VariableNames, 'char');
-        portfolio_constraint = readtable(config_path, opts);
-    catch
-        
-        portfolio_constraint = table();
-    end
-
-    try
-        factor_constraint = readtable(config_path, 'Sheet', 'factor_constraint');
-    catch
-        factor_constraint = table();
-    end
-
-    fprintf('成功读取配置文件 (ConfigReader 内联实现):\n');
-    if exist('portfolio_info', 'var') && height(portfolio_info) > 0
-        fprintf('  投资组合数量: %d\n', height(portfolio_info));
-        fprintf('  投资组合列表:\n');
-        for i = 1:height(portfolio_info)
-            if ismember('portfolio_name', portfolio_info.Properties.VariableNames)
-                pname = portfolio_info.portfolio_name{i};
-            else
-                pname = sprintf('portfolio_%d', i);
-            end
-            fprintf('    %d. %s\n', i, pname);
-        end
-    end
+    [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReader(config_path);
 
    
     if isempty(specifiedDate) && ~useToday
@@ -82,20 +48,24 @@ function [portfolio_info, portfolio_constraint, factor_constraint] = ConfigReade
     else
 
         today_dt = datetime('today');
+
        
         [is_trading, actual_date] = ValidateWorkingDay(today_dt);
-        disp("aaaaaaa")
       
         now_dt = datetime('now');
-        disp(now_dt);
+        
         if is_trading && hour(now_dt) >= 19
             override_dt = NextWorkdayCalculator(today_dt);
         elseif ~is_trading
             last = datetime(actual_date, 'InputFormat', 'yyyy-MM-dd');
             override_dt = NextWorkdayCalculator(last);
         else
-            override_dt = today_dt;
+            override_dt = LastWorkdayCalculator(today_dt);
+            disp(today_dt);
+            disp(override_dt);
+
         end
+        
     end
 
     if ismember('start_date', portfolio_info.Properties.VariableNames)

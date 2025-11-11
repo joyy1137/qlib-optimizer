@@ -1,4 +1,5 @@
 function run_optimizer(option)
+	javaaddpath("E:\qlib-optimizer\Optimizer_matlab\mysql-connector-j-9.3.0.jar")
 
 	currentFile = mfilename('fullpath');
 	currentDir = fileparts(currentFile);
@@ -18,7 +19,7 @@ function run_optimizer(option)
 	% Ensure diary is turned off on function exit
 	cleanupDiary = onCleanup(@() diary('off'));
 
-	javaaddpath("E:\qlib-optimizer\Optimizer_matlab\mysql-connector-j-9.3.0.jar")
+	
 	addpath(genpath('E:\YAMLMatlab_0.4.3'));
 	savepath;
 	data_preparation(option);

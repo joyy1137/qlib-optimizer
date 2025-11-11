@@ -58,7 +58,7 @@ class QlibDataConverter:
                            params={'code': code, 'start_date': start_date_str, 'end_date': end_date_str})
             
             if df is not None and not df.empty:
-                log.info(f"从数据库获取 {code} 数据成功，共 {len(df)} 条记录")
+                log.info(f"从数据库获取 {code} 数据成功")
                 return df
             # else:
             #     log.info(f"股票 {code} 在数据库中无数据")
@@ -92,7 +92,7 @@ class QlibDataConverter:
                            params={'start_date': start_date_str, 'end_date': end_date_str})
             
             if df is not None and not df.empty:
-                log.info(f"批量获取 {len(codes)} 只股票数据成功，共 {len(df)} 条记录")
+                log.info(f"批量获取 {len(codes)} 只股票数据成功")
                 return df
             else:
                 log.warning("批量查询返回空数据")
@@ -155,65 +155,42 @@ class QlibDataConverter:
         df = df[required_columns]
         return df
     
-    def process_stock(self, code, start_date=None, end_date=None):
+   
+
+    def process_stock(self, code, start_date='20200101', end_date='20250920'):
         """
-        处理单只股票：只获取最近数据，如果已存在相同日期则覆盖
+        处理单只股票
         """
         csv_path = os.path.join(self.csv_output_dir, f"{code}.csv")
-
-
-        today = date.today()
-        two_days_ago = today - timedelta(days=7)
-
-        start_date = two_days_ago.strftime('%Y%m%d')
-        end_date = today.strftime('%Y%m%d')
+        
+        # 检查现有数据，实现增量更新
+        if os.path.exists(csv_path):
+            try:
+                existing = pd.read_csv(csv_path, parse_dates=['date'])
+                if not existing.empty:
+                    last_date = existing['date'].max().date()
+                    end_dt = datetime.strptime(end_date, '%Y%m%d').date()
+                    if last_date >= end_dt:
+                        log.info(f"{code} 数据已是最新，跳过")
+                        return True
+                   
+                    new_start = last_date + timedelta(days=1)
+                    start_date = new_start.strftime('%Y%m%d')
+                    log.info(f"{code} 存在历史数据，从 {start_date} 开始提取")
+            except Exception as e:
+                log.warning(f"读取现有CSV失败，执行全量拉取: {e}")
 
         # 从数据库获取数据
         df = self.get_hfq_data_from_sql(code, start_date, end_date)
         if df is None or df.empty:
             return False
-
+        
         df_qlib = self.format_for_qlib(df, code)
         if df_qlib is None:
             return False
-
-        return self._save_to_csv(df_qlib, csv_path)
-
-
-    # def process_stock(self, code, start_date='20200101', end_date='20250920'):
-    #     """
-    #     处理单只股票
-    #     """
-    #     csv_path = os.path.join(self.csv_output_dir, f"{code}.csv")
-        
-    #     # 检查现有数据，实现增量更新
-    #     if os.path.exists(csv_path):
-    #         try:
-    #             existing = pd.read_csv(csv_path, parse_dates=['date'])
-    #             if not existing.empty:
-    #                 last_date = existing['date'].max().date()
-    #                 end_dt = datetime.strptime(end_date, '%Y%m%d').date()
-    #                 if last_date >= end_dt:
-    #                     log.info(f"{code} 数据已是最新，跳过")
-    #                     return True
-                   
-    #                 new_start = last_date + timedelta(days=1)
-    #                 start_date = new_start.strftime('%Y%m%d')
-    #                 log.info(f"{code} 存在历史数据，从 {start_date} 开始提取")
-    #         except Exception as e:
-    #             log.warning(f"读取现有CSV失败，执行全量拉取: {e}")
-
-    #     # 从数据库获取数据
-    #     df = self.get_hfq_data_from_sql(code, start_date, end_date)
-    #     if df is None or df.empty:
-    #         return False
-        
-    #     df_qlib = self.format_for_qlib(df, code)
-    #     if df_qlib is None:
-    #         return False
             
-    #     # 保存数据
-    #     return self._save_to_csv(df_qlib, csv_path)
+        # 保存数据
+        return self._save_to_csv(df_qlib, csv_path)
      
 
 
@@ -441,12 +418,12 @@ def main():
     converter = QlibDataConverter(output_dir)
     
     market = 'ALL'
-    start_date = '20150101'
+    start_date = '20251001'
     end_date = date.today().strftime('%Y%m%d') 
     batch_size = 1000
 
-    # converter.process_all_stocks(market=market, start_date=start_date, end_date=end_date, batch_size=batch_size)
-    converter.process_all_stocks(market=market, batch_size=batch_size)
+    converter.process_all_stocks(market=market, start_date=start_date, end_date=end_date, batch_size=batch_size)
+    
 
     converter.process_all_indices(market=market, start_date=start_date, end_date=end_date)
     logging.info("处理完成")

@@ -310,7 +310,7 @@ function df_result = merge_portfolio_dataframe(output_path, option)
                     portfolio_name_clean = strrep(current_portfolio, '-', '_');
                     portfolio_name_clean = strrep(portfolio_name_clean, ' ', '_');
                     date_str_clean = strrep(current_date, '-', '');
-                    outFile = fullfile(output_path, [portfolio_name_clean '_' date_str_clean '.csv']);
+                    outFile = fullfile(output_path, portfolio_name_clean,[portfolio_name_clean '_' date_str_clean '.csv']);
                     
                     try
                         writetable(df_export, outFile);

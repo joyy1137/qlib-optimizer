@@ -58,7 +58,7 @@ class QlibDataConverter:
                            params={'code': code, 'start_date': start_date_str, 'end_date': end_date_str})
             
             if df is not None and not df.empty:
-                log.info(f"从数据库获取 {code} 数据成功，共 {len(df)} 条记录")
+                log.info(f"从数据库获取 {code} 数据成功")
                 return df
             # else:
             #     log.info(f"股票 {code} 在数据库中无数据")
@@ -92,7 +92,7 @@ class QlibDataConverter:
                            params={'start_date': start_date_str, 'end_date': end_date_str})
             
             if df is not None and not df.empty:
-                log.info(f"批量获取 {len(codes)} 只股票数据成功，共 {len(df)} 条记录")
+                log.info(f"批量获取 {len(codes)} 只股票数据成功")
                 return df
             else:
                 log.warning("批量查询返回空数据")
@@ -187,15 +187,41 @@ class QlibDataConverter:
         try:
             if os.path.exists(csv_path):
                 existing = pd.read_csv(csv_path, parse_dates=['date'])
-                combined = pd.concat([existing, df], ignore_index=True)
+                frames = []
+                for frame in (existing, df):
+                    if frame is None:
+                        continue
+                    # skip truly empty DataFrames
+                    if getattr(frame, 'empty', False):
+                        continue
+                    # drop columns that are all NA; if no columns remain, treat as empty
+                    frame_clean = frame.dropna(axis=1, how='all')
+                    # 如果过滤后没有列剩余，或者DataFrame为空，则跳过
+                    if frame_clean.shape[1] == 0 or frame_clean.empty:
+                        continue
+                    frames.append(frame_clean) 
+
+                # If nothing meaningful to concat, keep existing file untouched
+                if not frames:
+                    return True
+
+                common_cols = set(frames[0].columns)
+                for frame in frames[1:]:
+                    common_cols = common_cols.intersection(frame.columns)
+                
+                # 只保留共有的列
+                frames = [frame[list(common_cols)] for frame in frames]
+                
+                combined = pd.concat(frames, ignore_index=True)
                 combined['date'] = pd.to_datetime(combined['date']).dt.strftime('%Y-%m-%d')
                 combined.drop_duplicates(subset=['date'], keep='last', inplace=True)
                 combined.sort_values('date', inplace=True)
                 combined.to_csv(csv_path, index=False)
             else:
-                df.sort_values('date', inplace=True)
-                df.to_csv(csv_path, index=False)
-                
+                df_clean = df.dropna(axis=1, how='all')
+                if not df_clean.empty:
+                    df_clean.sort_values('date', inplace=True)
+                    df_clean.to_csv(csv_path, index=False)
             # log.info(f"成功保存数据到 {csv_path}")
             return True
         except Exception as e:
@@ -327,7 +353,7 @@ class QlibDataConverter:
             log.error(f"获取股票列表失败: {e}")
             return []
 
-    def process_all_stocks(self, market='ALL', start_date='20200101', end_date='20250920', batch_size=10):
+    def process_all_stocks(self, market='ALL', start_date='20250101', end_date='20250920', batch_size=10):
         """
         处理全部股票
         """
@@ -404,11 +430,13 @@ def main():
     converter = QlibDataConverter(output_dir)
     
     market = 'ALL'
-    start_date = '20150101'
-    end_date = date.today().strftime('%Y%m%d') 
+    today = date.today()
+    days_ago = today - timedelta(days=5)
+    start_date = days_ago.strftime('%Y%m%d')
+    end_date = today.strftime('%Y%m%d')
     batch_size = 1000
 
-    converter.process_all_stocks(market=market, batch_size=batch_size)
+    converter.process_all_stocks(market=market, batch_size=batch_size, start_date=start_date, end_date=end_date)
 
     converter.process_all_indices(market=market, start_date=start_date, end_date=end_date)
     logging.info("处理完成")
