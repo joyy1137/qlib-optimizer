@@ -34,7 +34,15 @@ function df_result = merge_portfolio_dataframe(output_path, option)
         catch
         end
     end
-    log_file = fullfile(log_dir, 'weight_optimizer.log');
+    % Add date suffix to log file so each day's run appends to a dated log
+
+    try
+        date_suffix = datestr(now, 'yyyymmdd');
+    catch
+        % Fallback in case now() isn't available for some reason
+        date_suffix = datestr(datetime('now'), 'yyyymmdd');
+    end
+    log_file = fullfile(log_dir, ['weight_optimizer_' date_suffix '.log']);
     
     % 读取配置文件获取投资组合基础信息
     fprintf_log('正在读取配置文件: ');

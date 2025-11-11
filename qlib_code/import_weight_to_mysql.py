@@ -3,7 +3,10 @@ import pandas as pd
 import os
 from importer import MySQLImporter
 import yaml
-
+import logging
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S")
 DEFAULT_DB_CONFIG = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'db.yaml'))
 path_config = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
 with open(path_config, 'r', encoding='utf-8') as f:

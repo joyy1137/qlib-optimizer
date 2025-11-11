@@ -4,6 +4,9 @@ from sqlalchemy import create_engine, text, types
 import yaml
 from typing import Dict, List, Optional
 import os
+import logging
+from logging import Logger
+logger: Logger = logging.getLogger(__name__)
 
 
 class MySQLImporter:
@@ -152,7 +155,7 @@ class MySQLImporter:
 
         records = df_clean.to_dict(orient='records')
         if not records:
-            print("没有要插入的数据")
+            logger.info("没有要插入的数据")
             return
 
         # Ensure columns exist; if we just created the table assume schema present
@@ -207,7 +210,7 @@ class MySQLImporter:
                 cur = raw_conn.cursor()
                 cur.executemany(insert_sql, param_tuples)
                 raw_conn.commit()
-                print(f"导入 {len(param_tuples)} 行到 {target_db}.{table_name}")
+                logger.info(f"导入 %d 行到 %s.%s", len(param_tuples), target_db, table_name)
             finally:
                 try:
                     cur.close()
@@ -218,7 +221,8 @@ class MySQLImporter:
                 except Exception:
                     pass
         except Exception as e:
-            print(f"导入 失败: {e}")
+            # Log full exception with stacktrace so it's visible in logs
+            logger.exception("导入 失败: %s", e)
     
     def _preprocess_data(self, df: pd.DataFrame, schema: List[Dict]) -> pd.DataFrame:
         """

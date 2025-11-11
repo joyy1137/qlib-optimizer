@@ -6,12 +6,29 @@ import os
 from pathlib import Path
 import yaml
 from typing import TextIO
+from datetime import datetime, date
 
 WORKDIR = Path(__file__).resolve().parent
 cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'paths.yaml'))
 with open(cfg_path, 'r', encoding='utf-8') as f:
         cfg = yaml.safe_load(f) or {}
-csv_path = cfg['csv_output_dir']
+
+
+base_csv_dir = Path(cfg['csv_daily_dir'])
+
+def _latest_subdir(base: Path) -> Path:
+    try:
+        if not base.exists():
+            return base
+        subdirs = [p for p in base.iterdir() if p.is_dir()]
+        if not subdirs:
+            return base
+        latest = max(subdirs, key=lambda p: p.stat().st_mtime)
+        return latest
+    except Exception:
+        return base
+
+csv_path = str(_latest_subdir(base_csv_dir))
 qlib_bin_dir = cfg['qlib_bin_dir']
 qlib_workdir = Path(cfg['qlib_workdir'])
 
@@ -87,9 +104,25 @@ def main():
     parser.add_argument("--qlib_workdir", default=qlib_workdir)
     parser.add_argument("--include_fields", default="open,close,high,low,volume,factor,money")
     parser.add_argument("--dump_script", default=str(qlib_workdir/ "scripts" / "dump_bin.py"))
-    parser.add_argument("--log-file", default=str(WORKDIR / "../logs/score_prediction.log"), help="Path to append log output")
+    parser.add_argument("--log-file", default=None, help="Path to append log output. If not provided, defaults to logs/score_prediction_YYYYMMDD.log")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
+
+    # If user didn't provide --log-file, build a default one that includes date.
+    if args.log_file is None:
+        # Prefer the provided --date (YYYY-MM-DD) if valid, otherwise use today
+        log_date: date
+        if getattr(args, "date", None):
+            try:
+                log_date = datetime.strptime(args.date, "%Y-%m-%d").date()
+            except Exception:
+                # fallback to today if parsing fails
+                log_date = datetime.today().date()
+        else:
+            log_date = datetime.today().date()
+
+        default_log_path = WORKDIR.parent / "logs" / f"score_prediction_{log_date.strftime('%Y%m%d')}.log"
+        args.log_file = str(default_log_path)
 
     # Open log file and tee stdout/stderr so output is also saved locally.
     log_f = None

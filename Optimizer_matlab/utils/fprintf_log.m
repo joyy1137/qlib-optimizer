@@ -1,9 +1,5 @@
 function varargout = fprintf_log(fmt, varargin)
-% fprintf_log - wrapper around fprintf that also appends the formatted message
-% to the repository log file via append_log_to_file.
-% Usage: fprintf_log(fmt, ...) behaves like fprintf(fmt, ...)
-% It will call the builtin fprintf to print to the command window, then
-% format the message and call append_log_to_file to append to logs/weight_optimizer.log.
+
 
 % Call builtin fprintf so we don't recurse
 try

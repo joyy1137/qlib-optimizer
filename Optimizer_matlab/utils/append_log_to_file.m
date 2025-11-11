@@ -1,11 +1,4 @@
 function append_log_to_file(log_file_or_fmt, varargin)
-% append_log_to_file - append timestamped message to a log file.
-% Usage:
-%   append_log_to_file(fmt, args...)
-%   append_log_to_file(log_file, fmt, args...)
-% If the first argument looks like a path (contains filesep), it is used as
-% the target log file; otherwise a default repo-level logs/weight_optimizer.log
-% is used and the first arg is treated as the format string.
 
 try
     % Determine whether first arg is a path or format string
@@ -32,7 +25,14 @@ try
         if ~exist(log_dir, 'dir')
             try mkdir(log_dir); catch, end
         end
-        log_file = fullfile(log_dir, 'weight_optimizer.log');
+        try
+            date_suffix = datestr(now, 'yyyymmdd');
+        catch
+            % Fallback in case now() isn't available for some reason
+            date_suffix = datestr(datetime('now'), 'yyyymmdd');
+        end
+        log_file = fullfile(log_dir, ['weight_optimizer_' date_suffix '.log']);
+       
         fmt = first;
         args = varargin;
     end

@@ -8,7 +8,14 @@ function run_optimizer(option)
 	if ~exist(logDir, 'dir')
 		mkdir(logDir);
 	end
-	logFile = fullfile(logDir, sprintf('weight_optimizer.log'));
+	try
+        date_suffix = datestr(now, 'yyyymmdd');
+    catch
+        % Fallback in case now() isn't available for some reason
+        date_suffix = datestr(datetime('now'), 'yyyymmdd');
+    end
+	
+	logFile = fullfile(logDir, sprintf('weight_optimizer_%s.log', date_suffix));
 	try
 		% diary(file) turns on logging to that file
 		diary(logFile);
